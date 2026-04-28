@@ -1,0 +1,94 @@
+{
+  "update_time": "2026-04-28 15:30",
+  "a_share": {
+    "indexes": [
+      {
+        "name": "上证指数",
+        "code": "000001",
+        "price": 4086.34,
+        "change_pct": 0.16
+      },
+      {
+        "name": "深证成指",
+        "code": "399001",
+        "price": 10520.55,
+        "change_pct": -0.42
+      },
+      {
+        "name": "创业板指",
+        "code": "399006",
+        "price": 2180.34,
+        "change_pct": -0.88
+      }
+    ],
+    "market_sentiment": {
+      "up_count": 0,
+      "down_count": 0,
+      "limit_up": 60,
+      "limit_down": 30
+    },
+    "panic_index": {
+      "value": 39.0,
+      "label": "平稳",
+      "history": [
+        44.0,
+        39.0
+      ]
+    },
+    "north_flow": {
+      "value": 18.5,
+      "unit": "亿",
+      "history": [
+        32,
+        28,
+        45,
+        -12,
+        20,
+        55,
+        18.5
+      ]
+    },
+    "volume": {
+      "value": 8950,
+      "unit": "亿",
+      "vs_20day_avg": -8.5,
+      "history": [
+        8200,
+        9100,
+        8800,
+        10200,
+        7800,
+        8500,
+        8950
+      ]
+    }
+  },
+  "us_market": {
+    "vix": {
+      "value": 25.3,
+      "change_pct": 1.8,
+      "history": [
+        22.1,
+        23.5,
+        24.0,
+        24.8,
+        25.1,
+        25.0,
+        25.3
+      ]
+    },
+    "sp500": {
+      "value": 5430.2,
+      "change_pct": 0.35,
+      "history": [
+        5380,
+        5400,
+        5390,
+        5410,
+        5405,
+        5415,
+        5430
+      ]
+    }
+  }
+}

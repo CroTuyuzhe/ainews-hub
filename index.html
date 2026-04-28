@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>市场情绪看板</title>
+  <meta name="description" content="A股 + 美股市场情绪实时看板">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    /* ===== SPACING TOKENS (UI Spec) ===== */
+    :root {
+      --space-xs: 4px; --space-sm: 8px; --space-md: 16px;
+      --space-lg: 24px; --space-xl: 32px; --space-xxl: 48px;
+      --card-padding: var(--space-md);
+      --card-gap: var(--space-lg);
+      --section-gap: var(--space-xl);
+      --grid-gap: 12px;
+      --page-padding: var(--space-md);
+      --container-max-width: 640px;
+    }
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0e17;
+      color: #e2e8f0;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: var(--page-padding);
+    }
+
+    /* ===== LAYOUT ===== */
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding-bottom: 48px;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      padding: 16px 0 8px;
+      position: sticky;
+      top: 0;
+      background: #0a0e17;
+      z-index: 10;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header .update-time {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .header .update-time .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 4px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
+    }
+    .header .update-time .dot.offline {
+      background: #ef4444;
+      animation: none;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .data-note {
+      background: #1e293b;
+      border: 1px solid #f59e0b40;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #fbbf24;
+      margin-top: 8px;
+      display: none;
+    }
+    .data-note.show { display: block; }
+
+    /* ===== SECTION TITLE ===== */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: var(--section-gap) 0 var(--space-md);
+      padding-left: 4px;
+    }
+
+    /* ===== CARDS ===== */
+    .card + .card { margin-top: var(--card-gap); }
+    .card {
+      background: linear-gradient(135deg, #111827, #1a2332);
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: var(--card-padding);
+      margin-bottom: 0;
+      transition: border-color 0.2s;
+    }
+    .card:active {
+      border-color: #334155;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+    .card-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: var(--grid-gap);
+      flex-wrap: wrap;
+    }
+    .card-value {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .card-change {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .card-change.up { color: #22c55e; background: #22c55e15; }
+    .card-change.down { color: #ef4444; background: #ef444415; }
+    .card-change.flat { color: #94a3b8; background: #94a3b815; }
+
+    .card-sub {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* ===== INDEXES GRID ===== */
+    .indexes-grid {
+      margin-bottom: var(--card-gap);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--grid-gap);
+    }
+    .index-card {
+      background: linear-gradient(135deg, #111827, #1a2332);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+    .index-card .name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    .index-card .price {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .index-card .change {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .index-card .change.up { color: #22c55e; }
+    .index-card .change.down { color: #ef4444; }
+
+    /* ===== SENTIMENT ROW ===== */
+    .sentiment-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .sentiment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .sentiment-item:last-child { border-bottom: none; }
+    .sentiment-item .label { font-size: 12px; color: #94a3b8; }
+    .sentiment-item .value { font-size: 14px; font-weight: 700; }
+    .sentiment-item .value.up { color: #22c55e; }
+    .sentiment-item .value.down { color: #ef4444; }
+
+    /* ===== PANIC METER ===== */
+    .panic-meter {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 8px 0;
+    }
+    .panic-ring {
+      width: 64px;
+      height: 64px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .panic-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .panic-ring .bg { fill: none; stroke: #1e293b; stroke-width: 6; }
+    .panic-ring .fg {
+      fill: none;
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s ease, stroke 0.5s;
+    }
+    .panic-ring .center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .panic-info {
+      flex: 1;
+    }
+    .panic-info .panic-label {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .panic-info .panic-desc {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* ===== CHART CONTAINER ===== */
+    .chart-container {
+      margin-top: 12px;
+      height: 120px;
+      position: relative;
+    }
+    .chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ===== STATUS BAR ===== */
+    .status-bar {
+      text-align: center;
+      font-size: 11px;
+      color: #475569;
+      padding: 16px 0;
+      border-top: 1px solid #1e293b;
+      margin-top: 16px;
+    }
+    .status-bar .fa-heart { color: #ef4444; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 400px) {
+      .indexes-grid {
+      margin-bottom: var(--card-gap); grid-template-columns: 1fr; }
+      .sentiment-grid { grid-template-columns: 1fr; }
+      .card-value { font-size: 22px; }
+      .index-card .price { font-size: 16px; }
+      .header h1 { font-size: 17px; }
+    }
+    @media (min-width: 641px) {
+      body { padding: 24px; }
+      .container { max-width: var(--container-max-width); }
+      .indexes-grid {
+      margin-bottom: var(--card-gap); grid-template-columns: 1fr 1fr 1fr; }
+      .sentiment-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (min-width: 768px) {
+      .container { max-width: var(--container-max-width); }
+      .row-2col { margin-bottom: var(--card-gap); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .row-2col .card + .card { margin-top: 0; }
+    }
+
+    /* ===== LOADING ===== */
+    .loading {
+      text-align: center;
+      padding: 80px 20px;
+    }
+    .loading .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #1e293b;
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { color: #64748b; font-size: 14px; }
+
+    /* ===== ERROR ===== */
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .error-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .error-state h2 { font-size: 18px; margin-bottom: 8px; }
+    .error-state p { color: #64748b; font-size: 13px; }
+    .error-state .retry-btn {
+      margin-top: 16px;
+      padding: 8px 24px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: #e2e8f0;
+      transition: transform 0.3s ease, opacity 0.3s;
+      opacity: 0;
+      z-index: 100;
+      white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>加载市场数据...</p>
+    </div>
+
+    <!-- Error -->
+    <div class="error-state" id="error" style="display:none">
+      <div class="icon">📡</div>
+      <h2>数据加载失败</h2>
+      <p id="errorMsg">无法连接到数据源</p>
+      <button class="retry-btn" onclick="location.reload()">重新加载</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="content" style="display:none">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <h1>📊 市场情绪看板</h1>
+          <span style="font-size:13px;color:#64748b;" id="marketStatus">--</span>
+        </div>
+        <div class="update-time">
+          <span class="dot" id="statusDot"></span>
+          <span id="updateTimeText">加载中...</span>
+        </div>
+        <div class="data-note" id="dataNote"></div>
+      </div>
+
+      <!-- A 股 -->
+      <div class="section-title">🇨🇳 A 股市场</div>
+
+      <!-- 三大指数 -->
+      <div class="indexes-grid" id="indexGrid"></div>
+
+      <!-- 市场情绪 -->
+      <div class="card" id="sentimentCard">
+        <div class="card-title">📈 市场情绪</div>
+        <div class="sentiment-grid" id="sentimentGrid"></div>
+      </div>
+
+      <!-- 恐慌指数 -->
+      <div class="card" id="panicCard">
+        <div class="card-title">⚠️ 恐慌指数</div>
+        <div class="panic-meter">
+          <div class="panic-ring">
+            <svg viewBox="0 0 40 40">
+              <circle class="bg" cx="20" cy="20" r="16"/>
+              <circle class="fg" id="panicArc" cx="20" cy="20" r="16"
+                      stroke="#22c55e"
+                      stroke-dasharray="100.53"
+                      stroke-dashoffset="100.53"/>
+            </svg>
+            <div class="center-text" id="panicValue">0</div>
+          </div>
+          <div class="panic-info">
+            <div class="panic-label" id="panicLabel">--</div>
+            <div class="panic-desc">基于涨跌比·涨跌停比·成交量偏离</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="panicChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 北向资金 -->
+      <div class="card" id="northFlowCard">
+        <div class="card-title">💰 北向资金</div>
+        <div class="card-value-row">
+          <span class="card-value" id="northFlowValue">--</span>
+          <span class="card-sub" id="northFlowUnit">亿</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="northFlowChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 成交量 -->
+      <div class="card" id="volumeCard">
+        <div class="card-title">📊 成交量</div>
+        <div class="card-value-row">
+          <span class="card-value" id="volumeValue">--</span>
+          <span class="card-sub" id="volumeUnit">亿</span>
+          <span class="card-change" id="volumeVsAvg">--</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="volumeChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 美股 -->
+      <div class="section-title">🇺🇸 美股市场</div>
+
+      <div class="row-2col" id="usRow">
+        <div class="card">
+          <div class="card-title">📉 VIX 恐慌指数</div>
+          <div class="card-value-row">
+            <span class="card-value" id="vixValue">--</span>
+            <span class="card-change" id="vixChange">--</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="vixChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📈 标普500</div>
+          <div class="card-value-row">
+            <span class="card-value" id="sp500Value">--</span>
+            <span class="card-change" id="sp500Change">--</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="sp500Chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        Made with <span style="color:#ef4444;">❤</span> · 数据仅供参考，不构成投资建议
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+  // ===== Chart.js 全局配置 =====
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.font.family = 'Inter, sans-serif';
+  Chart.defaults.font.size = 10;
+
+  // ===== 工具 =====
+  function $(id) { return document.getElementById(id); }
+
+  function showToast(msg, duration) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), duration || 2500);
+  }
+
+  function formatNum(n) {
+    if (n === undefined || n === null || isNaN(n)) return '--';
+    return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatInt(n) {
+    if (n === undefined || n === null || isNaN(n)) return '--';
+    return Number(n).toLocaleString('zh-CN');
+  }
+
+  function changeClass(val) {
+    if (val > 0) return 'up';
+    if (val < 0) return 'down';
+    return 'flat';
+  }
+
+  function changeSign(val) {
+    if (val === undefined || val === null || isNaN(val)) return '--';
+    const n = Number(val);
+    return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
+  }
+
+  function panicColor(val) {
+    if (val < 20) return '#22c55e';
+    if (val < 40) return '#84cc16';
+    if (val < 60) return '#f59e0b';
+    if (val < 80) return '#f97316';
+    return '#ef4444';
+  }
+
+  function createChart(id, labels, data, color, fillColor) {
+    const canvas = $(id);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          borderColor: color,
+          backgroundColor: fillColor || color + '20',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#94a3b8',
+            bodyColor: '#e2e8f0',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 8,
+            cornerRadius: 8,
+            displayColors: false
+          }
+        },
+        scales: {
+          x: {
+            display: false,
+            grid: { display: false }
+          },
+          y: {
+            display: false,
+            grid: { display: false }
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        }
+      }
+    });
+  }
+
+  // ===== 生成日期标签 =====
+  function dateLabels(count) {
+    const labels = [];
+    const now = new Date();
+    for (let i = count - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      labels.push((d.getMonth() + 1) + '/' + d.getDate());
+    }
+    return labels;
+  }
+
+  // ===== 渲染主函数 =====
+  function render(data) {
+    const a = data.a_share || {};
+    const us = data.us_market || {};
+    const isMock = data.data_note && data.data_note.includes('模拟');
+
+    // 数据注记
+    if (data.data_note) {
+      const note = $('dataNote');
+      note.textContent = '⚠ ' + data.data_note;
+      note.classList.add('show');
+    }
+
+    // 更新时间
+    $('updateTimeText').textContent = '数据截止: ' + (data.update_time || '--');
+    if (isMock || !data.update_time) {
+      $('statusDot').classList.add('offline');
+    }
+
+    // 市场状态 (按交易时间简单判断)
+    const now = new Date();
+    const h = now.getUTCHours() + 8; // CST
+    const isTradingDay = now.getDay() >= 1 && now.getDay() <= 5;
+    const isATrading = isTradingDay && h >= 9 && h < 15;
+    const isUSTrading = isTradingDay && (h >= 21 || h < 5);
+    if (isATrading) {
+      $('marketStatus').textContent = '🔴 交易中';
+    } else if (isUSTrading) {
+      $('marketStatus').textContent = '🔴 美股交易中';
+    } else if (isTradingDay) {
+      $('marketStatus').textContent = '⏸ 已收盘';
+    } else {
+      $('marketStatus').textContent = '📅 休市中';
+    }
+
+    // ---- 三大指数 ----
+    const idxList = a.indexes || [];
+    const idxGrid = $('indexGrid');
+    idxGrid.innerHTML = '';
+    idxList.forEach(idx => {
+      const chg = idx.change_pct || 0;
+      const div = document.createElement('div');
+      div.className = 'index-card';
+      div.innerHTML = `
+        <div class="name">${idx.name}</div>
+        <div class="price">${formatNum(idx.price)}</div>
+        <div class="change ${changeClass(chg)}">${changeSign(chg)}</div>
+      `;
+      idxGrid.appendChild(div);
+    });
+
+    // ---- 市场情绪 ----
+    const sent = a.market_sentiment || {};
+    const sentGrid = $('sentimentGrid');
+    sentGrid.innerHTML = `
+      <div class="sentiment-item">
+        <span class="label">📗 上涨</span>
+        <span class="value up">${formatInt(sent.up_count)}</span>
+      </div>
+      <div class="sentiment-item">
+        <span class="label">📕 下跌</span>
+        <span class="value down">${formatInt(sent.down_count)}</span>
+      </div>
+      <div class="sentiment-item">
+        <span class="label">🚀 涨停</span>
+        <span class="value up">${formatInt(sent.limit_up)}</span>
+      </div>
+      <div class="sentiment-item">
+        <span class="label">💧 跌停</span>
+        <span class="value down">${formatInt(sent.limit_down)}</span>
+      </div>
+    `;
+
+    // ---- 恐慌指数 ----
+    const panic = a.panic_index || {};
+    const pVal = panic.value || 0;
+    $('panicValue').textContent = Math.round(pVal);
+    $('panicLabel').textContent = panic.label || '--';
+    $('panicLabel').style.color = panicColor(pVal);
+
+    // 环形进度
+    const arc = $('panicArc');
+    const circumference = 2 * Math.PI * 16; // r=16
+    const offset = circumference - (pVal / 100) * circumference;
+    arc.style.strokeDasharray = circumference;
+    arc.style.strokeDashoffset = offset;
+    arc.style.stroke = panicColor(pVal);
+
+    // 恐慌历史图
+    const panicHist = panic.history || [];
+    if (panicHist.length >= 2) {
+      createChart(
+        'panicChart',
+        dateLabels(panicHist.length),
+        panicHist,
+        panicColor(pVal),
+        panicColor(pVal) + '15'
+      );
+    }
+
+    // ---- 北向资金 ----
+    const nf = a.north_flow || {};
+    const nfVal = nf.value ?? 0;
+    $('northFlowValue').textContent = nfVal >= 0 ? '+' + nfVal.toFixed(1) : nfVal.toFixed(1);
+    $('northFlowUnit').textContent = nf.unit || '亿';
+    $('northFlowValue').style.color = nfVal >= 0 ? '#22c55e' : '#ef4444';
+
+    const nfHist = nf.history || [];
+    if (nfHist.length >= 2) {
+      createChart('northFlowChart', dateLabels(nfHist.length), nfHist, nfVal >= 0 ? '#22c55e' : '#ef4444');
+    }
+
+    // ---- 成交量 ----
+    const vol = a.volume || {};
+    const volVal = vol.value ?? 0;
+    $('volumeValue').textContent = formatNum(volVal);
+    $('volumeUnit').textContent = vol.unit || '亿';
+    const vs = vol.vs_20day_avg ?? 0;
+    const vsEl = $('volumeVsAvg');
+    vsEl.textContent = (vs > 0 ? '+' : '') + vs.toFixed(1) + '% vs 20日均';
+    vsEl.className = 'card-change ' + changeClass(vs);
+
+    const volHist = vol.history || [];
+    if (volHist.length >= 2) {
+      createChart('volumeChart', dateLabels(volHist.length), volHist, '#60a5fa');
+    }
+
+    // ---- 美股 ----
+    // VIX
+    const vix = us.vix || {};
+    const vixVal = vix.value ?? 0;
+    $('vixValue').textContent = vixVal.toFixed(2);
+    const vixChg = vix.change_pct ?? 0;
+    const vixEl = $('vixChange');
+    vixEl.textContent = changeSign(vixChg);
+    vixEl.className = 'card-change ' + changeClass(vixChg);
+
+    const vixHist = vix.history || [];
+    if (vixHist.length >= 2) {
+      createChart('vixChart', dateLabels(vixHist.length), vixHist, '#f59e0b');
+    }
+
+    // 标普500
+    const sp = us.sp500 || {};
+    const spVal = sp.value ?? 0;
+    $('sp500Value').textContent = formatNum(spVal);
+    const spChg = sp.change_pct ?? 0;
+    const spEl = $('sp500Change');
+    spEl.textContent = changeSign(spChg);
+    spEl.className = 'card-change ' + changeClass(spChg);
+
+    const spHist = sp.history || [];
+    if (spHist.length >= 2) {
+      createChart('sp500Chart', dateLabels(spHist.length), spHist, '#22c55e');
+    }
+  }
+
+  // ===== 加载数据 =====
+  async function loadData() {
+    try {
+      $('loading').style.display = 'block';
+      $('content').style.display = 'none';
+      $('error').style.display = 'none';
+
+      const resp = await fetch('./data/data.json?t=' + Date.now());
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+      const data = await resp.json();
+
+      $('loading').style.display = 'none';
+      $('content').style.display = 'block';
+
+      render(data);
+      showToast('✅ 数据已更新: ' + (data.update_time || '--'), 2000);
+    } catch (err) {
+      console.error('Load error:', err);
+      $('loading').style.display = 'none';
+      $('error').style.display = 'block';
+      $('errorMsg').textContent = err.message || '网络请求失败';
+      showToast('❌ 加载失败: ' + (err.message || '未知错误'), 3000);
+    }
+  }
+
+  // ===== 启动 =====
+  document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
