@@ -670,7 +670,7 @@
         <span class="label">💧 跌停</span>
         <span class="value down">${noSentData ? '暂无数据' : formatInt(sent.limit_down)}</span>
       </div>
-    \`;
+    `;
     // 涨跌家数不可用时在 dataNote 显示原因
     if (noSentData && data.data_note) {
       const note = $('dataNote');
@@ -769,7 +769,7 @@
       $('content').style.display = 'none';
       $('error').style.display = 'none';
 
-      const resp = await fetch('./data/data.json?t=' + Date.now());
+      const resp = await fetch('./data.json?t=' + Date.now());
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
 
       const data = await resp.json();
