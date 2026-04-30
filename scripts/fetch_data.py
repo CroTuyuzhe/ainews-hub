@@ -257,7 +257,12 @@ def main():
     sentiment = safe_call(fetch_sentiment)
     if not sentiment or sentiment["up_count"] == 0:
         print("⚠ 使用涨停板数据+缓存")
-        sentiment = prev.get("a_share", {}).get("market_sentiment", MOCK["sentiment"])
+        # prev 数据也可能有 0（API 不可用），需要检查是否有效
+        prev_sent = prev.get("a_share", {}).get("market_sentiment", {})
+        if prev_sent.get("up_count", 0) > 0 or prev_sent.get("down_count", 0) > 0:
+            sentiment = prev_sent
+        else:
+            sentiment = dict(MOCK["sentiment"])  # 用模拟数据兜底
         # 用真实涨停跌停覆盖
         try:
             t = date.today().strftime("%Y%m%d")
@@ -274,11 +279,19 @@ def main():
     nf = safe_call(fetch_north_flow_new)
     if not nf or nf["value"] == 0:
         print("⚠ 降级")
-        nf = prev.get("a_share", {}).get("north_flow", MOCK["north_flow"])
+        prev_nf = prev.get("a_share", {}).get("north_flow", {})
+        if prev_nf.get("value", 0) > 0:
+            nf = prev_nf
+        else:
+            nf = dict(MOCK["north_flow"])
     else:
         print(f"✅ {nf['value']}亿")
 
-    volume = prev.get("a_share", {}).get("volume", MOCK["volume"])
+    prev_vol = prev.get("a_share", {}).get("volume", {})
+    if prev_vol.get("value", 0) > 0:
+        volume = prev_vol
+    else:
+        volume = dict(MOCK["volume"])
 
     print("  恐慌指数...", end=" ", flush=True)
     panic = calc_panic(sentiment, volume)
@@ -293,7 +306,11 @@ def main():
     us = safe_call(fetch_us, retries=1)
     if not us or us["vix"]["value"] == 0:
         print("⚠ 降级")
-        us = prev.get("us_market", {"vix": MOCK["vix"], "sp500": MOCK["sp500"]})
+        prev_us = prev.get("us_market", {})
+        if prev_us.get("vix", {}).get("value", 0) > 0:
+            us = prev_us
+        else:
+            us = {"vix": dict(MOCK["vix"]), "sp500": dict(MOCK["sp500"])}
     else:
         print(f"✅ VIX:{us['vix']['value']} SP500:{us['sp500']['value']}")
 

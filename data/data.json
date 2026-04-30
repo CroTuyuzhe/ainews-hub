@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-04-28 15:30",
+  "update_time": "2026-04-29 20:12",
   "a_share": {
     "indexes": [
       {
@@ -22,17 +22,22 @@
       }
     ],
     "market_sentiment": {
-      "up_count": 0,
-      "down_count": 0,
-      "limit_up": 60,
-      "limit_down": 30
+      "up_count": 1650,
+      "down_count": 1950,
+      "limit_up": 100,
+      "limit_down": 13
     },
     "panic_index": {
-      "value": 39.0,
-      "label": "平稳",
+      "value": 40.1,
+      "label": "恐慌",
       "history": [
-        44.0,
-        39.0
+        38,
+        32,
+        28,
+        30,
+        34,
+        32,
+        40.1
       ]
     },
     "north_flow": {
@@ -65,21 +70,21 @@
   },
   "us_market": {
     "vix": {
-      "value": 25.3,
-      "change_pct": 1.8,
+      "value": 18.52,
+      "change_pct": 2.1,
       "history": [
-        22.1,
-        23.5,
-        24.0,
-        24.8,
-        25.1,
-        25.0,
-        25.3
+        16.5,
+        17.2,
+        16.8,
+        17.5,
+        18.0,
+        18.1,
+        18.5
       ]
     },
     "sp500": {
-      "value": 5430.2,
-      "change_pct": 0.35,
+      "value": 5420.15,
+      "change_pct": 0.45,
       "history": [
         5380,
         5400,
@@ -87,7 +92,7 @@
         5410,
         5405,
         5415,
-        5430
+        5420
       ]
     }
   }
