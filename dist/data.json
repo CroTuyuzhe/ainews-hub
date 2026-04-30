@@ -1,10 +1,17 @@
 {
-  "update_time": "2026-04-29 23:38",
+  "update_time": "2026-04-29 23:56",
   "a_share": {
-    "indexes": [],
+    "indexes": [
+      {
+        "name": "上证指数",
+        "code": "000001",
+        "price": 4112.86,
+        "change_pct": 0.0
+      }
+    ],
     "market_sentiment": {
-      "up_count": 3539,
-      "down_count": 2938,
+      "up_count": 3524,
+      "down_count": 2936,
       "limit_up": 100,
       "limit_down": 13
     },
@@ -42,10 +49,13 @@
       "history": []
     },
     "sp500": {
-      "value": 0,
-      "change_pct": 0,
-      "history": []
+      "value": 7135.95,
+      "change_pct": -0.04,
+      "history": [
+        7145.63,
+        7135.95
+      ]
     }
   },
-  "data_note": "美股数据暂不可用，使用上一交易日数据"
+  "data_note": "VIX数据暂无可用数据源"
 }

@@ -736,8 +736,8 @@
     // VIX
     const vix = us.vix || {};
     const vixVal = vix.value ?? 0;
-    $('vixValue').textContent = vixVal.toFixed(2);
-    const vixChg = vix.change_pct ?? 0;
+    $('vixValue').textContent = vixVal > 0 ? vixVal.toFixed(2) : "暂无数据";
+    const vixChg = (vix.value > 0 ? (vix.change_pct ?? 0) : 0);
     const vixEl = $('vixChange');
     vixEl.textContent = changeSign(vixChg);
     vixEl.className = 'card-change ' + changeClass(vixChg);

@@ -229,33 +229,34 @@ def calc_panic(sentiment, volume):
 # ── 美股 ──
 
 def fetch_us():
+    """从新浪财经获取标普500数据"""
     result = {"vix": {"value": 0, "change_pct": 0, "history": []},
               "sp500": {"value": 0, "change_pct": 0, "history": []}}
-    if not HAVE_YFINANCE:
-        return result
-    for i in range(3):
-        try:
-            vix = yf.Ticker("^VIX")
-            vh = vix.history(period="7d")
-            if vh.empty: continue
-            result["vix"]["value"] = round(float(vh["Close"].iloc[-1]), 2)
-            if len(vh) >= 2:
-                result["vix"]["change_pct"] = round(
-                    (vh["Close"].iloc[-1] - vh["Close"].iloc[-2]) / vh["Close"].iloc[-2] * 100, 2)
-            result["vix"]["history"] = [round(float(v), 2) for v in vh["Close"].values]
-
-            sp = yf.Ticker("^GSPC")
-            sh = sp.history(period="7d")
-            if sh.empty: continue
-            result["sp500"]["value"] = round(float(sh["Close"].iloc[-1]), 2)
-            if len(sh) >= 2:
-                result["sp500"]["change_pct"] = round(
-                    (sh["Close"].iloc[-1] - sh["Close"].iloc[-2]) / sh["Close"].iloc[-2] * 100, 2)
-            result["sp500"]["history"] = [round(float(v), 2) for v in sh["Close"].values]
-            return result
-        except Exception as e:
-            print(f"  [WARN] 美股第{i+1}次尝试失败: {type(e).__name__}", file=sys.stderr)
-            time.sleep(3)
+    try:
+        import urllib.request
+        url = "https://hq.sinajs.cn/list=gb_$inx"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://finance.sina.com.cn",
+        })
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = resp.read().decode("gb18030")
+        # 格式: var hq_str_gb_$inx="标普500指数,7135.9502,-0.04,..."
+        parts = data.split('"')[1].split(',')
+        if len(parts) >= 3:
+            price = float(parts[1])
+            change_pct = float(parts[2])
+            result["sp500"]["value"] = round(price, 2)
+            result["sp500"]["change_pct"] = round(change_pct, 2)
+            # 获取7日历史 (parts里有开盘价等，但我们需要每日收盘)
+            # parts[3]=日期, parts[4]=涨跌额, parts[5]=开盘价, parts[6]=昨日收盘
+            if len(parts) >= 7:
+                prev_close = float(parts[6]) if parts[6] else 0
+                if prev_close > 0:
+                    # 用 available 数据给个简单的2日历史
+                    result["sp500"]["history"] = [round(prev_close, 2), round(price, 2)]
+    except Exception as e:
+        print(f"  [WARN] 新浪美股失败: {type(e).__name__}", file=sys.stderr)
     return result
 
 # ── 主流程 ──
@@ -346,8 +347,8 @@ def main():
     # 美股
     print("  美股(VIX/标普500)...", end=" ", flush=True)
     us = safe_call(fetch_us, retries=1)
-    if not us or us["vix"]["value"] == 0:
-        print("⚠ 美股数据暂不可用，使用上一交易日数据")
+    if not us or us["sp500"]["value"] == 0:
+        print("⚠ 标普500数据暂不可用，使用上一交易日数据")
         prev_us = prev.get("us_market", {})
         if prev_us.get("vix", {}).get("value", 0) > 0:
             us = prev_us
@@ -369,10 +370,10 @@ def main():
     notes = []
     if data["a_share"]["market_sentiment"].get("up_count", 0) == 0 and data["a_share"]["market_sentiment"].get("down_count", 0) == 0:
         notes.append("涨跌家数暂无数据（数据源异常）")
-    if data["a_share"]["market_sentiment"].get("up_count", 0) > 0 or data["a_share"]["market_sentiment"].get("down_count", 0) > 0:
-        pass  # 有数据不额外提示
+    if data["us_market"]["sp500"]["value"] == 0:
+        notes.append("美股标普500数据暂不可用")
     if data["us_market"]["vix"]["value"] == 0:
-        notes.append("美股数据暂不可用，使用上一交易日数据")
+        notes.append("VIX数据暂无可用数据源")
     if notes:
         data["data_note"] = "; ".join(notes)
 
