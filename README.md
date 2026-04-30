@@ -2,6 +2,11 @@
 
 A股 + 美股市场情绪实时看板 — 每日自动更新。
 
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/CroTuyuzhe/ainews-hub/daily.yml?label=%E6%9B%B4%E6%96%B0&logo=github)
+![Last Commit](https://img.shields.io/github/last-commit/CroTuyuzhe/ainews-hub/gh-pages?label=%E6%9C%80%E5%90%8E%E9%83%A8%E7%BD%B2&logo=github)
+
+> 🌐 **在线看板**: `https://crotuyuzhe.github.io/ainews-hub/`
+
 ## 技术栈
 
 - **前端**: 纯 HTML/CSS/JS + Chart.js
@@ -41,6 +46,12 @@ A股 + 美股市场情绪实时看板 — 每日自动更新。
 恐慌指数(0-100) = 涨跌比权重40% + 涨停跌停比权重30% + 成交量偏离权重30%
 ```
 
+## 自动更新
+
+- **定时**: 工作日 18:30 CST (GitHub Actions)
+- **手动触发**: 在 GitHub Actions 页面点击 `workflow_dispatch`
+- **失败保护**: 数据采集失败时自动跳过部署，保留上次正常数据
+
 ## 本地开发
 
 ```bash
@@ -57,10 +68,6 @@ python scripts/build_site.py
 cd dist && python -m http.server 8000
 # 访问 http://localhost:8000
 ```
-
-## 自动更新
-
-GitHub Actions 工作日 18:30 CST 自动采集并部署。
 
 ## License
 
