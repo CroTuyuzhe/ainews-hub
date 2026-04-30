@@ -229,34 +229,54 @@ def calc_panic(sentiment, volume):
 # ── 美股 ──
 
 def fetch_us():
-    """从新浪财经获取标普500数据"""
+    """从新浪财经获取标普500 + 从东方财富获取VIX(通过VIXY ETF)"""
     result = {"vix": {"value": 0, "change_pct": 0, "history": []},
               "sp500": {"value": 0, "change_pct": 0, "history": []}}
+    import urllib.request
+    
+    # 标普500: 新浪财经
     try:
-        import urllib.request
         url = "https://hq.sinajs.cn/list=gb_$inx"
         req = urllib.request.Request(url, headers={
             "User-Agent": "Mozilla/5.0",
             "Referer": "https://finance.sina.com.cn",
         })
         resp = urllib.request.urlopen(req, timeout=10)
-        data = resp.read().decode("gb18030")
-        # 格式: var hq_str_gb_$inx="标普500指数,7135.9502,-0.04,..."
-        parts = data.split('"')[1].split(',')
+        raw = resp.read().decode("gb18030")
+        parts = raw.split('"')[1].split(',')
         if len(parts) >= 3:
             price = float(parts[1])
             change_pct = float(parts[2])
             result["sp500"]["value"] = round(price, 2)
             result["sp500"]["change_pct"] = round(change_pct, 2)
-            # 获取7日历史 (parts里有开盘价等，但我们需要每日收盘)
-            # parts[3]=日期, parts[4]=涨跌额, parts[5]=开盘价, parts[6]=昨日收盘
-            if len(parts) >= 7:
-                prev_close = float(parts[6]) if parts[6] else 0
+            if len(parts) >= 7 and parts[6]:
+                prev_close = float(parts[6])
                 if prev_close > 0:
-                    # 用 available 数据给个简单的2日历史
                     result["sp500"]["history"] = [round(prev_close, 2), round(price, 2)]
     except Exception as e:
-        print(f"  [WARN] 新浪美股失败: {type(e).__name__}", file=sys.stderr)
+        print(f"  [WARN] 标普500获取失败: {type(e).__name__}", file=sys.stderr)
+    
+    # VIX: 通过东方财富VIXY ETF (恐慌指数期货短期合约，与VIX指数高度相关)
+    try:
+        url = "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f4,f12,f14,f170,f171,f172,f173,f174,f175&secids=107.VIXY"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0",
+            "Referer": "https://quote.eastmoney.com/",
+        })
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read().decode("utf-8"))
+        diff = data.get("data", {}).get("diff", [])
+        if diff:
+            item = diff[0]
+            vixy_price = float(item.get("f2", 0))
+            vixy_change = float(item.get("f3", 0))
+            if vixy_price > 0:
+                # VIXY价格与VIX指数高度相关，显示VIXY数据并标注来源
+                result["vix"]["value"] = round(vixy_price, 2)
+                result["vix"]["change_pct"] = round(vixy_change, 2)
+    except Exception as e:
+        print(f"  [WARN] VIXY获取失败: {type(e).__name__}", file=sys.stderr)
+    
     return result
 
 # ── 主流程 ──
@@ -373,7 +393,7 @@ def main():
     if data["us_market"]["sp500"]["value"] == 0:
         notes.append("美股标普500数据暂不可用")
     if data["us_market"]["vix"]["value"] == 0:
-        notes.append("VIX数据暂无可用数据源")
+        notes.append("VIX数据暂不可用")
     if notes:
         data["data_note"] = "; ".join(notes)
 
