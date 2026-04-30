@@ -1,0 +1,51 @@
+{
+  "update_time": "2026-04-29 23:38",
+  "a_share": {
+    "indexes": [],
+    "market_sentiment": {
+      "up_count": 3539,
+      "down_count": 2938,
+      "limit_up": 100,
+      "limit_down": 13
+    },
+    "panic_index": {
+      "value": 36.6,
+      "label": "平稳",
+      "history": [
+        36.6
+      ]
+    },
+    "north_flow": {
+      "value": 0,
+      "unit": "亿",
+      "history": []
+    },
+    "volume": {
+      "value": 8950,
+      "unit": "亿",
+      "vs_20day_avg": -8.5,
+      "history": [
+        8200,
+        9100,
+        8800,
+        10200,
+        7800,
+        8500,
+        8950
+      ]
+    }
+  },
+  "us_market": {
+    "vix": {
+      "value": 0,
+      "change_pct": 0,
+      "history": []
+    },
+    "sp500": {
+      "value": 0,
+      "change_pct": 0,
+      "history": []
+    }
+  },
+  "data_note": "美股数据暂不可用，使用上一交易日数据"
+}
