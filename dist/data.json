@@ -1,14 +1,7 @@
 {
-  "update_time": "2026-04-29 20:20",
+  "update_time": "2026-04-29 20:35",
   "a_share": {
-    "indexes": [
-      {
-        "name": "上证指数",
-        "code": "000001",
-        "price": 4106.7,
-        "change_pct": 0.0
-      }
-    ],
+    "indexes": [],
     "market_sentiment": {
       "up_count": 0,
       "down_count": 0,
@@ -16,41 +9,67 @@
       "limit_down": 13
     },
     "panic_index": {
-      "value": 32.5,
+      "value": 38.5,
       "label": "平稳",
       "history": [
-        32,
-        28,
-        30,
-        34,
-        32,
-        40.1,
-        32.5
+        38.5
       ]
     },
     "north_flow": {
-      "value": 0,
+      "value": 18.5,
       "unit": "亿",
-      "history": []
+      "history": [
+        32,
+        28,
+        45,
+        -12,
+        20,
+        55,
+        18.5
+      ]
     },
     "volume": {
-      "value": 0,
+      "value": 8950,
       "unit": "亿",
-      "vs_20day_avg": 0,
-      "history": []
+      "vs_20day_avg": -8.5,
+      "history": [
+        8200,
+        9100,
+        8800,
+        10200,
+        7800,
+        8500,
+        8950
+      ]
     }
   },
   "us_market": {
     "vix": {
-      "value": 0,
-      "change_pct": 0,
-      "history": []
+      "value": 18.52,
+      "change_pct": 2.1,
+      "history": [
+        16.5,
+        17.2,
+        16.8,
+        17.5,
+        18.0,
+        18.1,
+        18.5
+      ]
     },
     "sp500": {
-      "value": 0,
-      "change_pct": 0,
-      "history": []
+      "value": 5420.15,
+      "change_pct": 0.45,
+      "history": [
+        5380,
+        5400,
+        5390,
+        5410,
+        5405,
+        5415,
+        5420
+      ]
     }
   },
-  "data_note": "涨跌家数数据暂不可用（非交易时段或数据源异常）; 美股数据暂不可用"
+  "data_note": "涨跌家数数据暂不可用（非交易时段或数据源异常）"
 }

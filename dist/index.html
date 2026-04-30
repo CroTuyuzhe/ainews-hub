@@ -652,29 +652,29 @@
     // ---- 市场情绪 ----
     const sent = a.market_sentiment || {};
     const sentGrid = $('sentimentGrid');
-    const sentUnavailable = sent.up_count === 0 && sent.down_count === 0;
+    const noSentData = sent.up_count === 0 && sent.down_count === 0;
     sentGrid.innerHTML = `
       <div class="sentiment-item">
         <span class="label">📗 上涨</span>
-        <span class="value up">${sentUnavailable ? '暂无数据' : formatInt(sent.up_count)}</span>
+        <span class="value up">${noSentData ? '暂无数据' : formatInt(sent.up_count)}</span>
       </div>
       <div class="sentiment-item">
         <span class="label">📕 下跌</span>
-        <span class="value down">${sentUnavailable ? '暂无数据' : formatInt(sent.down_count)}</span>
+        <span class="value down">${noSentData ? '暂无数据' : formatInt(sent.down_count)}</span>
       </div>
       <div class="sentiment-item">
         <span class="label">🚀 涨停</span>
-        <span class="value up">${sentUnavailable ? '暂无数据' : formatInt(sent.limit_up)}</span>
+        <span class="value up">${noSentData ? '暂无数据' : formatInt(sent.limit_up)}</span>
       </div>
       <div class="sentiment-item">
         <span class="label">💧 跌停</span>
-        <span class="value down">${sentUnavailable ? '暂无数据' : formatInt(sent.limit_down)}</span>
+        <span class="value down">${noSentData ? '暂无数据' : formatInt(sent.limit_down)}</span>
       </div>
-    `;
-    // 涨跌家数不可用时添加数据注记
-    if (sentUnavailable) {
+    \`;
+    // 涨跌家数不可用时在 dataNote 显示原因
+    if (noSentData && data.data_note) {
       const note = $('dataNote');
-      note.textContent = '⚠ 涨跌家数数据暂不可用（非交易时段或数据源异常），其余指标为缓存数据';
+      note.textContent = '⚠ ' + data.data_note;
       note.classList.add('show');
     }
 

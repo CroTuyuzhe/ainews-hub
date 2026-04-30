@@ -1,43 +1,18 @@
 {
-  "update_time": "2026-04-29 20:12",
+  "update_time": "2026-04-29 20:35",
   "a_share": {
-    "indexes": [
-      {
-        "name": "上证指数",
-        "code": "000001",
-        "price": 4086.34,
-        "change_pct": 0.16
-      },
-      {
-        "name": "深证成指",
-        "code": "399001",
-        "price": 10520.55,
-        "change_pct": -0.42
-      },
-      {
-        "name": "创业板指",
-        "code": "399006",
-        "price": 2180.34,
-        "change_pct": -0.88
-      }
-    ],
+    "indexes": [],
     "market_sentiment": {
-      "up_count": 1650,
-      "down_count": 1950,
+      "up_count": 0,
+      "down_count": 0,
       "limit_up": 100,
       "limit_down": 13
     },
     "panic_index": {
-      "value": 40.1,
-      "label": "恐慌",
+      "value": 38.5,
+      "label": "平稳",
       "history": [
-        38,
-        32,
-        28,
-        30,
-        34,
-        32,
-        40.1
+        38.5
       ]
     },
     "north_flow": {
@@ -95,5 +70,6 @@
         5420
       ]
     }
-  }
+  },
+  "data_note": "涨跌家数数据暂不可用（非交易时段或数据源异常）"
 }

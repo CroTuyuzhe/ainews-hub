@@ -249,20 +249,16 @@ def main():
     indexes = safe_call(fetch_indexes)
     if not indexes:
         print("⚠ 降级使用缓存/模拟")
-        indexes = prev.get("a_share", {}).get("indexes", MOCK["indexes"])
+        indexes = prev.get("a_share", {}).get("indexes", [])
     else:
         print(f"✅ {len(indexes)}条")
 
     print("  涨跌家数/涨停...", end=" ", flush=True)
     sentiment = safe_call(fetch_sentiment)
     if not sentiment or sentiment["up_count"] == 0:
-        print("⚠ 使用涨停板数据+缓存")
-        # prev 数据也可能有 0（API 不可用），需要检查是否有效
-        prev_sent = prev.get("a_share", {}).get("market_sentiment", {})
-        if prev_sent.get("up_count", 0) > 0 or prev_sent.get("down_count", 0) > 0:
-            sentiment = prev_sent
-        else:
-            sentiment = dict(MOCK["sentiment"])  # 用模拟数据兜底
+        print("⚠ 涨跌家数数据暂不可用，保持0值（非交易时段或数据源异常）")
+        if not sentiment:
+            sentiment = {"up_count": 0, "down_count": 0, "limit_up": 0, "limit_down": 0}
         # 用真实涨停跌停覆盖
         try:
             t = date.today().strftime("%Y%m%d")
@@ -271,9 +267,9 @@ def main():
             dt = ak.stock_zt_pool_dtgc_em(date=t)
             if dt is not None: sentiment["limit_down"] = len(dt)
         except: pass
-        print(f"  涨停:{sentiment['limit_up']} 跌停:{sentiment['limit_down']}")
+        print("  涨停:" + str(sentiment["limit_up"]) + " 跌停:" + str(sentiment["limit_down"]))
     else:
-        print(f"✅ 上涨:{sentiment['up_count']} 下跌:{sentiment['down_count']}")
+        print("✅ 上涨:" + str(sentiment["up_count"]) + " 下跌:" + str(sentiment["down_count"]))
 
     print("  北向资金...", end=" ", flush=True)
     nf = safe_call(fetch_north_flow_new)
@@ -325,9 +321,8 @@ def main():
 
     # 数据源标注
     notes = []
-    if data["a_share"]["indexes"] == MOCK["indexes"] or data["a_share"]["indexes"] == prev.get("a_share", {}).get("indexes", []):
-        if data["a_share"]["indexes"] == MOCK["indexes"] and not prev:
-            notes.append("指数为模拟数据（数据源暂不可用）")
+    if data["a_share"]["market_sentiment"].get("up_count", 0) == 0 and data["a_share"]["market_sentiment"].get("down_count", 0) == 0:
+        notes.append("涨跌家数数据暂不可用（非交易时段或数据源异常）")
     if data["us_market"]["vix"]["value"] == 0:
         notes.append("美股数据暂不可用")
     if notes:
