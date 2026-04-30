@@ -1,18 +1,18 @@
 {
-  "update_time": "2026-04-29 23:31",
+  "update_time": "2026-04-29 23:38",
   "a_share": {
     "indexes": [],
     "market_sentiment": {
-      "up_count": 0,
-      "down_count": 0,
+      "up_count": 3539,
+      "down_count": 2938,
       "limit_up": 100,
       "limit_down": 13
     },
     "panic_index": {
-      "value": 38.5,
+      "value": 36.6,
       "label": "平稳",
       "history": [
-        38.5
+        36.6
       ]
     },
     "north_flow": {
@@ -47,5 +47,5 @@
       "history": []
     }
   },
-  "data_note": "涨跌家数暂无数据（首次运行或数据源异常）; 美股数据暂不可用，使用上一交易日数据"
+  "data_note": "美股数据暂不可用，使用上一交易日数据"
 }

@@ -128,6 +128,47 @@ def fetch_sentiment():
         pass  # 保持0值，后面fallback
     return result
 
+
+def fetch_sentiment_from_api():
+    """从东方财富 API 直接获取涨跌家数（不走 stock_zh_a_spot_em 全量扫描）"""
+    result = {"up_count": 0, "down_count": 0, "limit_up": 0, "limit_down": 0}
+    try:
+        url = ("https://push2.eastmoney.com/api/qt/ulist.np/get?"
+               "fltt=2&fields=f2,f3,f4,f12,f14,f104,f105,f115,f116"
+               "&secids=1.000001,0.399001,0.399006")
+        import urllib.request
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+            "Referer": "https://quote.eastmoney.com/",
+        })
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(resp.read().decode("utf-8"))
+        diff = data.get("data", {}).get("diff", [])
+        total_up = 0
+        total_down = 0
+        for item in diff:
+            total_up += int(item.get("f104", 0))
+            total_down += int(item.get("f105", 0))
+        if total_up > 0 or total_down > 0:
+            result["up_count"] = total_up
+            result["down_count"] = total_down
+    except Exception as e:
+        print(f"  [WARN] 涨跌家数API失败: {type(e).__name__}", file=sys.stderr)
+    
+    # 涨停跌停仍然走 stock_zt_pool_em
+    try:
+        today = date.today().strftime("%Y%m%d")
+        zt = ak.stock_zt_pool_em(date=today)
+        if zt is not None and not zt.empty:
+            result["limit_up"] = len(zt)
+        dt = ak.stock_zt_pool_dtgc_em(date=today)
+        if dt is not None and not dt.empty:
+            result["limit_down"] = len(dt)
+    except:
+        pass
+    return result
+
+
 def fetch_north_flow_new():
     """北向资金 - 使用 stock_hsgt_fund_flow_summary_em + stock_hsgt_hist_em"""
     result = {"value": 0, "unit": "亿", "history": []}
@@ -254,9 +295,9 @@ def main():
         print(f"✅ {len(indexes)}条")
 
     print("  涨跌家数/涨停...", end=" ", flush=True)
-    sentiment = safe_call(fetch_sentiment)
+    sentiment = safe_call(fetch_sentiment_from_api)
     if not sentiment or sentiment["up_count"] == 0:
-        # API 不可用时，优先用上一个交易日数据
+        # API 不可用时，用上一个交易日数据
         prev_sent = prev.get("a_share", {}).get("market_sentiment", {})
         if prev_sent.get("up_count", 0) > 0:
             sentiment = dict(prev_sent)
@@ -264,7 +305,7 @@ def main():
         else:
             sentiment = {"up_count": 0, "down_count": 0, "limit_up": 0, "limit_down": 0}
             print("⚠ 涨跌家数数据暂不可用（无历史缓存）")
-        # 用真实涨停跌停覆盖（该API通常可用）
+        # 用真实涨停跌停覆盖
         try:
             t = date.today().strftime("%Y%m%d")
             zt = ak.stock_zt_pool_em(date=t)
@@ -327,7 +368,9 @@ def main():
     # 数据源标注
     notes = []
     if data["a_share"]["market_sentiment"].get("up_count", 0) == 0 and data["a_share"]["market_sentiment"].get("down_count", 0) == 0:
-        notes.append("涨跌家数暂无数据（首次运行或数据源异常）")
+        notes.append("涨跌家数暂无数据（数据源异常）")
+    if data["a_share"]["market_sentiment"].get("up_count", 0) > 0 or data["a_share"]["market_sentiment"].get("down_count", 0) > 0:
+        pass  # 有数据不额外提示
     if data["us_market"]["vix"]["value"] == 0:
         notes.append("美股数据暂不可用，使用上一交易日数据")
     if notes:
