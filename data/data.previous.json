@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-04-29 20:35",
+  "update_time": "2026-04-29 23:31",
   "a_share": {
     "indexes": [],
     "market_sentiment": {
@@ -16,17 +16,9 @@
       ]
     },
     "north_flow": {
-      "value": 18.5,
+      "value": 0,
       "unit": "亿",
-      "history": [
-        32,
-        28,
-        45,
-        -12,
-        20,
-        55,
-        18.5
-      ]
+      "history": []
     },
     "volume": {
       "value": 8950,
@@ -45,31 +37,15 @@
   },
   "us_market": {
     "vix": {
-      "value": 18.52,
-      "change_pct": 2.1,
-      "history": [
-        16.5,
-        17.2,
-        16.8,
-        17.5,
-        18.0,
-        18.1,
-        18.5
-      ]
+      "value": 0,
+      "change_pct": 0,
+      "history": []
     },
     "sp500": {
-      "value": 5420.15,
-      "change_pct": 0.45,
-      "history": [
-        5380,
-        5400,
-        5390,
-        5410,
-        5405,
-        5415,
-        5420
-      ]
+      "value": 0,
+      "change_pct": 0,
+      "history": []
     }
   },
-  "data_note": "涨跌家数数据暂不可用（非交易时段或数据源异常）"
+  "data_note": "涨跌家数暂无数据（首次运行或数据源异常）; 美股数据暂不可用，使用上一交易日数据"
 }
