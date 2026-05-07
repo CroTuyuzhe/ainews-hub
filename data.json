@@ -1,11 +1,11 @@
 {
-  "update_time": "2026-05-07 06:59",
+  "update_time": "2026-05-07 07:10",
   "a_share": {
     "indexes": [
       {
         "name": "上证指数",
         "code": "000001",
-        "price": 4112.16,
+        "price": 4180.09,
         "change_pct": 0.0
       }
     ],
