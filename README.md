@@ -3,7 +3,7 @@
 A股 + 美股市场情绪实时看板 — 每日自动更新。
 
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/CroTuyuzhe/ainews-hub/daily.yml?label=%E6%9B%B4%E6%96%B0&logo=github)
-![Last Commit](https://img.shields.io/github/last-commit/CroTuyuzhe/ainews-hub/gh-pages?label=%E6%9C%80%E5%90%8E%E9%83%A8%E7%BD%B2&logo=github)
+![Last Commit](https://img.shields.io/github/last-commit/CroTuyuzhe/ainews-hub/main?label=%E6%9C%80%E5%90%8E%E9%83%A8%E7%BD%B2&logo=github)
 
 > 🌐 **在线看板**: `https://crotuyuzhe.github.io/ainews-hub/`
 
