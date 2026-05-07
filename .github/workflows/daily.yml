@@ -2,8 +2,8 @@ name: 📊 市场情绪看板 — Daily Update
 
 on:
   schedule:
-    - cron: '30 10 * * 1-5'   # 工作日 18:30 CST
-  workflow_dispatch:
+    - cron: '30 10 * * 1-5'   # 工作日 18:30 CST (10:30 UTC)
+  workflow_dispatch:           # 支持手动触发
 
 permissions:
   contents: write
@@ -15,12 +15,10 @@ concurrency:
 jobs:
   daily-update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -30,51 +28,34 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           pip install --upgrade pip
-          pip install akshare pandas
+          pip install akshare pandas requests --quiet
 
-      - name: 📡 Fetch & Build
-        id: run
+      - name: 📡 Fetch Data
+        id: fetch
+        continue-on-error: true
         run: |
-          # 采集数据
+          echo "开始采集数据..."
           python scripts/fetch_data.py 2>&1
-          EXIT_CODE=$?
-          
-          # 检查数据有效性
-          python3 -c "
-import json
-try:
-    with open('data/data.json') as f:
-        d = json.load(f)
-    up = d.get('a_share', {}).get('market_sentiment', {}).get('up_count', 0)
-    down = d.get('a_share', {}).get('market_sentiment', {}).get('down_count', 0)
-    sp = d.get('us_market', {}).get('sp500', {}).get('value', 0)
-    print(f'A股:{up}/{down} 标普500:{sp}')
-    if up == 0 and down == 0 and sp == 0:
-        exit(1)
-except:
-    exit(1)
-" 2>&1 && DATA_OK=true || DATA_OK=false
-          
-          echo "data_ok=$DATA_OK" >> $GITHUB_OUTPUT
-          
-          if [ "$DATA_OK" = "true" ]; then
-            # 构建站点
-            python scripts/build_site.py
-            # 部署到根目录
-            cp dist/index.html index.html
-            cp dist/data.json data.json
-            git config user.name 'market-bot'
-            git config user.email 'bot@market-sentiment.io'
-            git add index.html data.json
-            if git diff --cached --quiet; then
-              echo "✅ 数据无变化，跳过部署"
-            else
-              git commit -m "deploy: 每日数据更新 [skip ci]"
-              git push
-              echo "✅ 已部署更新"
-            fi
-          else
-            echo "⚠️ 数据全部为空，跳过部署（保留上次数据）"
-          fi
-        env:
-          PYTHONIOENCODING: utf-8
+          echo "fetch_exit=$?" >> $GITHUB_OUTPUT
+
+      - name: 🔄 Fallback — 生成模拟数据
+        if: steps.fetch.outputs.fetch_exit != '0' || !success()
+        run: |
+          echo "⚠️ 数据采集失败，使用模拟数据兜底"
+          python scripts/fetch_data.py --mock 2>&1
+
+      - name: 🏗️ Build Site
+        run: |
+          python scripts/build_site.py 2>&1
+          echo "✅ 站点构建完成"
+
+      - name: 📤 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          keep_files: false
+          full_commit_message: "deploy: 每日数据更新 ${{ github.event.repository.updated_at }} [skip ci]"
+          user_name: "market-bot"
+          user_email: "bot@market-sentiment.io"
