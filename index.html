@@ -3,298 +3,452 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>市场情绪看板</title>
+  <title>市场情绪看板 | Sentiment Lab</title>
   <meta name="description" content="A股 + 美股市场情绪实时看板">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Space+Mono:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
-    /* ===== SPACING TOKENS (UI Spec) ===== */
+    /* ===== DESIGN TOKENS (btcdca.me inspired) ===== */
     :root {
-      --space-xs: 4px; --space-sm: 8px; --space-md: 16px;
-      --space-lg: 24px; --space-xl: 32px; --space-xxl: 48px;
-      --card-padding: var(--space-md);
-      --card-gap: var(--space-lg);
-      --section-gap: var(--space-xl);
-      --grid-gap: 12px;
-      --page-padding: var(--space-md);
-      --container-max-width: 640px;
+      --bg-page: #F6F5F0;
+      --bg-card: #FAFAF8;
+      --ink: #1A1A1A;
+      --ink-light: #4A4A4A;
+      --ink-muted: #8A8A8A;
+      --border: #1A1A1A;
+      --border-light: #D5D3CD;
+      --comp-face: #F0EEE8;
+      --comp-side: #E5E3DD;
+      --comp-shadow: #D5D3CD;
+      --screen-bg: #0D0D0D;
+      --screen-text: #e0e0e0;
+      --screen-text-dim: #666;
+      --screen-phosphor: #33FF33;
+      --screen-glow: rgba(51, 255, 51, 0.15);
+      --a-share: #DC2626;
+      --us-market: #0066CC;
+      --up: #22c55e;
+      --down: #ef4444;
+      --flat: #8A8A8A;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+      --space-xxl: 48px;
+      --card-radius: 12px;
     }
-    /* ===== RESET & BASE ===== */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { -webkit-text-size-adjust: 100%; }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0e17;
-      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-page);
+      color: var(--ink);
       line-height: 1.5;
       min-height: 100vh;
-      padding: var(--page-padding);
     }
 
-    /* ===== LAYOUT ===== */
-    .container {
-      max-width: 640px;
-      margin: 0 auto;
-      padding-bottom: 48px;
-    }
-
-    /* ===== HEADER ===== */
-    .header {
-      padding: 16px 0 8px;
-      position: sticky;
-      top: 0;
-      background: #0a0e17;
-      z-index: 10;
-    }
-    .header-top {
+    /* ===== NAV ===== */
+    .site-nav {
+      background: var(--bg-card);
+      border-bottom: 2px solid var(--border);
+      padding: 12px 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
     }
-    .header h1 {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.3px;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .site-nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--ink);
     }
-    .header .update-time {
+    .site-nav-logo {
+      width: 32px; height: 32px;
+      background: var(--ink);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+    .site-nav-title {
+      font-family: 'EB Garamond', serif;
+      font-size: 18px;
+      font-weight: 500;
+    }
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      background: var(--bg-page);
+      transition: all 0.2s ease;
+      cursor: default;
+    }
+    .nav-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 3px 3px 0 var(--border);
+    }
+    .nav-link.active { background: var(--ink); color: white; }
+    .nav-link .nav-icon {
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      border-radius: 4px;
+    }
+    .nav-link.a-share .nav-icon { background: var(--a-share); color: white; }
+    .nav-link.us-market .nav-icon { background: var(--us-market); color: white; }
+    .nav-link.time-link { border-color: var(--border-light); color: var(--ink-muted); font-size: 10px; }
+    .nav-link.time-link .nav-icon { background: var(--ink-muted); color: white; font-size: 9px; }
+
+    /* ===== CONTAINER ===== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 40px 60px;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-left { max-width: 600px; }
+    .tagline {
+      font-family: 'Space Mono', monospace;
       font-size: 11px;
-      color: #64748b;
-      margin-top: 2px;
+      color: var(--ink-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
-    .header .update-time .dot {
+    h1 {
+      font-family: 'EB Garamond', serif;
+      font-size: 42px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      line-height: 1.15;
+    }
+    .description {
+      font-size: 13px;
+      color: var(--ink-light);
+      line-height: 1.6;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .author-bubble {
       display: inline-block;
-      width: 6px; height: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-muted);
+    }
+    .header-right { text-align: right; }
+    .update-card {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-muted);
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      display: inline-block;
+      text-align: left;
+    }
+    .update-card .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
       border-radius: 50%;
-      background: #22c55e;
-      margin-right: 4px;
+      background: var(--up);
+      margin-right: 6px;
       vertical-align: middle;
       animation: pulse 2s infinite;
     }
-    .header .update-time .dot.offline {
-      background: #ef4444;
-      animation: none;
-    }
+    .update-card .dot.offline { background: var(--down); animation: none; }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50% { opacity: 0.3; }
     }
-
     .data-note {
-      background: #1e293b;
-      border: 1px solid #f59e0b40;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: #fbbf24;
       margin-top: 8px;
+      padding: 6px 10px;
+      border: 1px solid #f59e0b40;
+      background: #fffbeb;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: #b45309;
       display: none;
     }
     .data-note.show { display: block; }
 
-    /* ===== SECTION TITLE ===== */
-    .section-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: var(--section-gap) 0 var(--space-md);
-      padding-left: 4px;
-    }
-
-    /* ===== CARDS ===== */
-    .card + .card { margin-top: var(--card-gap); }
-    .card {
-      background: linear-gradient(135deg, #111827, #1a2332);
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: var(--card-padding);
-      margin-bottom: 0;
-      transition: border-color 0.2s;
-    }
-    .card:active {
-      border-color: #334155;
-    }
-    .card-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 6px;
-    }
-    .card-value-row {
+    /* ===== COMPUTER ROW ===== */
+    .computer-lab {
       display: flex;
-      align-items: baseline;
-      gap: var(--grid-gap);
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 40px;
     }
-    .card-value {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
+    .computer-row {
+      display: flex;
+      gap: 24px;
+      position: relative;
     }
-    .card-change {
-      font-size: 13px;
+    .row-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 8px 0;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+    .row-divider::before, .row-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: repeating-linear-gradient(90deg, var(--ink-muted) 0px, var(--ink-muted) 4px, transparent 4px, transparent 8px);
+      max-width: 200px;
+    }
+
+    /* ===== COMPUTER UNIT ===== */
+    .computer-unit {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(180deg, var(--comp-face) 0%, var(--comp-side) 100%);
+      border: 2px solid var(--border);
+      border-radius: var(--card-radius) var(--card-radius) 4px 4px;
+      padding: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: default;
+    }
+    .computer-unit:hover {
+      transform: rotateY(-3deg) rotateX(2deg);
+      box-shadow: 8px 8px 0 var(--border), 0 20px 40px rgba(0,0,0,0.1);
+    }
+    .computer-unit.wide { flex: 2; }
+
+    /* Asset Badge */
+    .asset-badge {
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
       font-weight: 600;
-      padding: 2px 8px;
+      padding: 4px 12px;
       border-radius: 20px;
+      background: var(--bg-card);
+      border: 2px solid var(--ink);
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s;
     }
-    .card-change.up { color: #22c55e; background: #22c55e15; }
-    .card-change.down { color: #ef4444; background: #ef444415; }
-    .card-change.flat { color: #94a3b8; background: #94a3b815; }
+    .computer-unit:hover .asset-badge {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .asset-badge.a-share { color: var(--a-share); border-color: var(--a-share); }
+    .asset-badge.us-market { color: var(--us-market); border-color: var(--us-market); }
+    .asset-badge.sentiment { color: #8b5cf6; border-color: #8b5cf6; }
+    .asset-badge.panic { color: #f59e0b; border-color: #f59e0b; }
+    .asset-badge.flow { color: #0D9488; border-color: #0D9488; }
+    .asset-badge.volume { color: #6366f1; border-color: #6366f1; }
 
-    .card-sub {
+    /* Unit Header */
+    .unit-header {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 4px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    /* ===== CRT SCREEN ===== */
+    .crt-screen {
+      background: var(--screen-bg);
+      border-radius: 6px;
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+      min-height: 80px;
+    }
+    .crt-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.02) 0px,
+        rgba(255,255,255,0.02) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      z-index: 2;
+      pointer-events: none;
+    }
+    .crt-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .screen-content {
+      position: relative;
+      z-index: 3;
+      font-family: 'Space Mono', monospace;
       font-size: 12px;
-      color: #64748b;
-      margin-top: 4px;
+      color: var(--screen-text);
+      line-height: 1.6;
     }
 
-    /* ===== INDEXES GRID ===== */
-    .indexes-grid {
-      margin-bottom: var(--card-gap);
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: var(--grid-gap);
-    }
-    .index-card {
-      background: linear-gradient(135deg, #111827, #1a2332);
-      border: 1px solid #1e293b;
-      border-radius: 10px;
-      padding: 12px 10px;
-      text-align: center;
-    }
-    .index-card .name {
-      font-size: 11px;
-      font-weight: 600;
-      color: #94a3b8;
-      margin-bottom: 4px;
-    }
-    .index-card .price {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.3px;
-    }
-    .index-card .change {
-      font-size: 11px;
-      font-weight: 600;
-      margin-top: 2px;
-    }
-    .index-card .change.up { color: #22c55e; }
-    .index-card .change.down { color: #ef4444; }
-
-    /* ===== SENTIMENT ROW ===== */
-    .sentiment-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .sentiment-item {
+    /* Terminal data rows */
+    .data-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid #1e293b;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    .sentiment-item:last-child { border-bottom: none; }
-    .sentiment-item .label { font-size: 12px; color: #94a3b8; }
-    .sentiment-item .value { font-size: 14px; font-weight: 700; }
-    .sentiment-item .value.up { color: #22c55e; }
-    .sentiment-item .value.down { color: #ef4444; }
+    .data-row:last-child { border-bottom: none; }
+    .data-label { color: var(--screen-text-dim); }
+    .data-value { color: var(--screen-text); font-weight: 500; }
+    .data-value.up { color: var(--up); }
+    .data-value.down { color: var(--down); }
 
-    /* ===== PANIC METER ===== */
-    .panic-meter {
+    /* ===== INDEXES GRID (inside CRT) ===== */
+    .indexes-crt {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .index-item {
+      text-align: center;
+      padding: 8px 4px;
+    }
+    .index-item .idx-name {
+      font-size: 9px;
+      color: var(--screen-text-dim);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .index-item .idx-price {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 2px 0;
+      letter-spacing: -0.3px;
+    }
+    .index-item .idx-change {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .index-item .idx-change.up { color: var(--up); }
+    .index-item .idx-change.down { color: var(--down); }
+
+    /* ===== GAUGE ===== */
+    .gauge-wrapper {
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin: 8px 0;
+      gap: 16px;
     }
-    .panic-ring {
-      width: 64px;
-      height: 64px;
+    .gauge-ring {
+      width: 56px; height: 56px;
       position: relative;
       flex-shrink: 0;
     }
-    .panic-ring svg {
-      width: 100%;
-      height: 100%;
+    .gauge-ring svg {
+      width: 100%; height: 100%;
       transform: rotate(-90deg);
     }
-    .panic-ring .bg { fill: none; stroke: #1e293b; stroke-width: 6; }
-    .panic-ring .fg {
-      fill: none;
-      stroke-width: 6;
+    .gauge-ring .bg { fill: none; stroke: #333; stroke-width: 5; }
+    .gauge-ring .fg {
+      fill: none; stroke-width: 5;
       stroke-linecap: round;
       transition: stroke-dashoffset 1s ease, stroke 0.5s;
     }
-    .panic-ring .center-text {
+    .gauge-ring .gauge-center-text {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       font-size: 16px;
-      font-weight: 800;
-    }
-    .panic-info {
-      flex: 1;
-    }
-    .panic-info .panic-label {
-      font-size: 20px;
       font-weight: 700;
+      color: var(--screen-text);
     }
-    .panic-info .panic-desc {
-      font-size: 12px;
-      color: #64748b;
+    .gauge-info { flex: 1; }
+    .gauge-info .gauge-label {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .gauge-info .gauge-desc {
+      font-size: 10px;
+      color: var(--screen-text-dim);
     }
 
-    /* ===== CHART CONTAINER ===== */
-    .chart-container {
-      margin-top: 12px;
-      height: 120px;
+    /* ===== CHART INSIDE CRT ===== */
+    .chart-crt {
+      margin-top: 10px;
+      height: 80px;
       position: relative;
     }
-    .chart-container canvas {
+    .chart-crt canvas {
       width: 100% !important;
       height: 100% !important;
+    }
+
+    /* ===== TWO COL INSIDE CRT ===== */
+    .two-col-crt {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     /* ===== STATUS BAR ===== */
     .status-bar {
       text-align: center;
-      font-size: 11px;
-      color: #475569;
-      padding: 16px 0;
-      border-top: 1px solid #1e293b;
-      margin-top: 16px;
-    }
-    .status-bar .fa-heart { color: #ef4444; }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 400px) {
-      .indexes-grid {
-      margin-bottom: var(--card-gap); grid-template-columns: 1fr; }
-      .sentiment-grid { grid-template-columns: 1fr; }
-      .card-value { font-size: 22px; }
-      .index-card .price { font-size: 16px; }
-      .header h1 { font-size: 17px; }
-    }
-    @media (min-width: 641px) {
-      body { padding: 24px; }
-      .container { max-width: var(--container-max-width); }
-      .indexes-grid {
-      margin-bottom: var(--card-gap); grid-template-columns: 1fr 1fr 1fr; }
-      .sentiment-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (min-width: 768px) {
-      .container { max-width: var(--container-max-width); }
-      .row-2col { margin-bottom: var(--card-gap); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      .row-2col .card + .card { margin-top: 0; }
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-muted);
+      padding: 20px 0;
+      border-top: 1px solid var(--border-light);
+      margin-top: 32px;
     }
 
     /* ===== LOADING ===== */
@@ -304,33 +458,35 @@
     }
     .loading .spinner {
       width: 40px; height: 40px;
-      border: 3px solid #1e293b;
-      border-top-color: #60a5fa;
+      border: 3px solid var(--border-light);
+      border-top-color: var(--ink);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading p { color: #64748b; font-size: 14px; }
+    .loading p { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--ink-muted); }
 
     /* ===== ERROR ===== */
-    .error-state {
-      text-align: center;
-      padding: 60px 20px;
-    }
+    .error-state { text-align: center; padding: 60px 20px; }
     .error-state .icon { font-size: 48px; margin-bottom: 12px; }
-    .error-state h2 { font-size: 18px; margin-bottom: 8px; }
-    .error-state p { color: #64748b; font-size: 13px; }
+    .error-state h2 { font-family: 'EB Garamond', serif; font-size: 24px; margin-bottom: 8px; }
+    .error-state p { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--ink-muted); }
     .error-state .retry-btn {
       margin-top: 16px;
       padding: 8px 24px;
-      background: #2563eb;
-      color: #fff;
+      background: var(--ink);
+      color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+    .error-state .retry-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 3px 3px 0 var(--border);
     }
 
     /* ===== TOAST ===== */
@@ -339,165 +495,325 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 10px;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 8px;
       padding: 10px 18px;
-      font-size: 13px;
-      color: #e2e8f0;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--ink);
       transition: transform 0.3s ease, opacity 0.3s;
       opacity: 0;
       z-index: 100;
-      white-space: nowrap;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 4px 4px 0 var(--border);
     }
     .toast.show {
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+
+    /* ===== BLINK CURSOR ===== */
+    .cursor::after {
+      content: '▊';
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .computer-row { flex-direction: column; }
+      .computer-unit.wide { flex: 1; }
+      .container { padding: 24px 20px 40px; }
+      h1 { font-size: 32px; }
+      header { flex-direction: column; gap: 16px; }
+      .header-right { text-align: left; width: 100%; }
+      .update-card { width: 100%; }
+      .site-nav { padding: 12px 24px; }
+      .indexes-crt { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .site-nav { padding: 10px 14px; }
+      .site-nav-links { width: 100%; justify-content: center; }
+      .nav-link { padding: 6px 12px; font-size: 11px; }
+      .container { padding: 14px 10px 32px; }
+      h1 { font-size: 26px; text-align: center; }
+      .tagline { text-align: center; }
+      .description { justify-content: center; text-align: center; }
+      header { align-items: center; padding-bottom: 16px; margin-bottom: 24px; }
+      .header-left { max-width: 100%; }
+      .update-card { text-align: center; }
+      .indexes-crt { grid-template-columns: 1fr; gap: 6px; }
+      .two-col-crt { grid-template-columns: 1fr; }
+      .gauge-wrapper { flex-direction: row; text-align: left; }
+      .computer-unit { padding: 10px; }
+      .computer-unit:hover { transform: none !important; box-shadow: none !important; }
+      .crt-screen { padding: 10px; min-height: 60px; }
+      .screen-content { font-size: 11px; }
+      .chart-crt { height: 60px; }
+      .computer-lab { gap: 20px; }
+      .computer-row { gap: 14px; }
+      .data-row { padding: 3px 0; }
+      .unit-header { font-size: 9px; margin: 2px 0 8px; }
+      .asset-badge { font-size: 9px; padding: 3px 10px; top: -8px; left: 10px; }
+      .gauge-ring { width: 44px; height: 44px; }
+      .gauge-ring .gauge-center-text { font-size: 13px; }
+      .gauge-info .gauge-label { font-size: 14px; }
+      .index-item .idx-price { font-size: 14px; }
+      .row-divider::before, .row-divider::after { max-width: 80px; }
+    }
+    @media (max-width: 400px) {
+      .site-nav-title { display: none; }
+      .site-nav { padding: 8px 10px; }
+      .nav-link { padding: 4px 8px; font-size: 10px; }
+      .nav-link .nav-icon { width: 16px; height: 16px; font-size: 8px; }
+      .container { padding: 10px 6px 24px; }
+      h1 { font-size: 20px; }
+      .crt-screen { padding: 8px; }
+      .screen-content { font-size: 10px; }
+      .chart-crt { height: 50px; }
+      .computer-unit { padding: 8px; border-width: 1.5px; }
+      .computer-lab { gap: 14px; }
+      .computer-row { gap: 10px; }
+      .asset-badge { font-size: 8px; padding: 2px 8px; top: -7px; left: 8px; }
+      .index-item .idx-price { font-size: 13px; }
+      .index-item .idx-name { font-size: 8px; }
+      .gauge-ring { width: 36px; height: 36px; }
+      .gauge-ring .gauge-center-text { font-size: 11px; }
+      .gauge-info .gauge-label { font-size: 12px; }
+      .row-divider { font-size: 9px; }
+      .status-bar { font-size: 8px; padding: 12px 0; }
+    }
+
   </style>
 </head>
 <body>
+  <!-- NAV -->
+  <nav class="site-nav">
+    <a class="site-nav-brand">
+      <div class="site-nav-logo">◈</div>
+      <span class="site-nav-title">Sentiment Lab</span>
+    </a>
+    <div class="site-nav-links">
+      <a class="nav-link a-share active">
+        <span class="nav-icon">A</span>
+        <span>A股</span>
+      </a>
+      <a class="nav-link us-market">
+        <span class="nav-icon">U</span>
+        <span>美股</span>
+      </a>
+      <a class="nav-link time-link" id="navTime">
+        <span class="nav-icon">⏱</span>
+        <span id="navTimeText">加载中...</span>
+      </a>
+    </div>
+  </nav>
+
   <div class="container" id="app">
     <!-- Loading -->
     <div class="loading" id="loading">
       <div class="spinner"></div>
-      <p>加载市场数据...</p>
+      <p>正在连接数据源<span class="cursor"></span></p>
     </div>
 
     <!-- Error -->
     <div class="error-state" id="error" style="display:none">
       <div class="icon">📡</div>
-      <h2>数据加载失败</h2>
+      <h2>信号丢失</h2>
       <p id="errorMsg">无法连接到数据源</p>
-      <button class="retry-btn" onclick="location.reload()">重新加载</button>
+      <button class="retry-btn" onclick="location.reload()">⟳ 重新连接</button>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main -->
     <div id="content" style="display:none">
-      <!-- Header -->
-      <div class="header">
-        <div class="header-top">
-          <h1>📊 市场情绪看板</h1>
-          <span style="font-size:13px;color:#64748b;" id="marketStatus">--</span>
+      <!-- HEADER -->
+      <header>
+        <div class="header-left">
+          <div class="tagline">A-Share & US Market Sentiment Computer Lab</div>
+          <h1>市场情绪计算机实验室</h1>
+          <p class="description">
+            实时追踪 A股 与美股市场情绪指标
+            <span class="author-bubble">数据仅供参考</span>
+          </p>
+          <div class="data-note" id="dataNote"></div>
         </div>
-        <div class="update-time">
-          <span class="dot" id="statusDot"></span>
-          <span id="updateTimeText">加载中...</span>
-        </div>
-        <div class="data-note" id="dataNote"></div>
-      </div>
-
-      <!-- A 股 -->
-      <div class="section-title">🇨🇳 A 股市场</div>
-
-      <!-- 三大指数 -->
-      <div class="indexes-grid" id="indexGrid"></div>
-
-      <!-- 市场情绪 -->
-      <div class="card" id="sentimentCard">
-        <div class="card-title">📈 市场情绪</div>
-        <div class="sentiment-grid" id="sentimentGrid"></div>
-      </div>
-
-      <!-- 恐慌指数 -->
-      <div class="card" id="panicCard">
-        <div class="card-title">⚠️ 恐慌指数</div>
-        <div class="panic-meter">
-          <div class="panic-ring">
-            <svg viewBox="0 0 40 40">
-              <circle class="bg" cx="20" cy="20" r="16"/>
-              <circle class="fg" id="panicArc" cx="20" cy="20" r="16"
-                      stroke="#22c55e"
-                      stroke-dasharray="100.53"
-                      stroke-dashoffset="100.53"/>
-            </svg>
-            <div class="center-text" id="panicValue">0</div>
-          </div>
-          <div class="panic-info">
-            <div class="panic-label" id="panicLabel">--</div>
-            <div class="panic-desc">基于涨跌比·涨跌停比·成交量偏离</div>
+        <div class="header-right">
+          <div class="update-card">
+            <span class="dot" id="statusDot"></span>
+            <span id="updateTimeText">同步中...</span>
           </div>
         </div>
-        <div class="chart-container">
-          <canvas id="panicChart"></canvas>
-        </div>
-      </div>
+      </header>
 
-      <!-- 北向资金 -->
-      <div class="card" id="northFlowCard">
-        <div class="card-title">💰 北向资金</div>
-        <div class="card-value-row">
-          <span class="card-value" id="northFlowValue">--</span>
-          <span class="card-sub" id="northFlowUnit">亿</span>
-        </div>
-        <div class="chart-container">
-          <canvas id="northFlowChart"></canvas>
-        </div>
-      </div>
+      <!-- COMPUTER LAB -->
+      <div class="computer-lab">
 
-      <!-- 成交量 -->
-      <div class="card" id="volumeCard">
-        <div class="card-title">📊 成交量</div>
-        <div class="card-value-row">
-          <span class="card-value" id="volumeValue">--</span>
-          <span class="card-sub" id="volumeUnit">亿</span>
-          <span class="card-change" id="volumeVsAvg">--</span>
-        </div>
-        <div class="chart-container">
-          <canvas id="volumeChart"></canvas>
-        </div>
-      </div>
-
-      <!-- 美股 -->
-      <div class="section-title">🇺🇸 美股市场</div>
-
-      <div class="row-2col" id="usRow">
-        <div class="card">
-          <div class="card-title">📉 VIX 恐慌指数</div>
-          <div class="card-value-row">
-            <span class="card-value" id="vixValue">--</span>
-            <span class="card-change" id="vixChange">--</span>
-          </div>
-          <div class="chart-container">
-            <canvas id="vixChart"></canvas>
+        <!-- ROW 1: 三大指数 -->
+        <div class="computer-row">
+          <div class="computer-unit wide">
+            <div class="asset-badge a-share">A股 指数</div>
+            <div class="unit-header">// INDEX COMPUTER</div>
+            <div class="crt-screen">
+              <div class="screen-content">
+                <div style="font-size:9px;color:var(--screen-text-dim);margin-bottom:8px;">$ ./track_indexes.sh</div>
+                <div class="indexes-crt" id="indexGrid"></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">📈 标普500</div>
-          <div class="card-value-row">
-            <span class="card-value" id="sp500Value">--</span>
-            <span class="card-change" id="sp500Change">--</span>
+        <!-- ROW 2: 市场情绪 + 恐慌指数 -->
+        <div class="computer-row">
+          <div class="computer-unit">
+            <div class="asset-badge sentiment">市场情绪</div>
+            <div class="unit-header">// SENTIMENT SCANNER</div>
+            <div class="crt-screen">
+              <div class="screen-content" id="sentimentGrid">
+                <div style="color:var(--screen-text-dim);">扫描中...</div>
+              </div>
+            </div>
           </div>
-          <div class="chart-container">
-            <canvas id="sp500Chart"></canvas>
+          <div class="computer-unit">
+            <div class="asset-badge panic">恐慌指数</div>
+            <div class="unit-header">// PANIC METER</div>
+            <div class="crt-screen">
+              <div class="screen-content">
+                <div class="gauge-wrapper">
+                  <div class="gauge-ring">
+                    <svg viewBox="0 0 40 40">
+                      <circle class="bg" cx="20" cy="20" r="16"/>
+                      <circle class="fg" id="panicArc" cx="20" cy="20" r="16"
+                              stroke="#33FF33"
+                              stroke-dasharray="100.53"
+                              stroke-dashoffset="100.53"/>
+                    </svg>
+                    <div class="gauge-center-text" id="panicValue">--</div>
+                  </div>
+                  <div class="gauge-info">
+                    <div class="gauge-label" id="panicLabel" style="color:#33FF33;">等待数据</div>
+                    <div class="gauge-desc">基于涨跌比·涨跌停比·成交量偏离</div>
+                  </div>
+                </div>
+                <div class="chart-crt">
+                  <canvas id="panicChart"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Status Bar -->
+        <!-- ROW 3: 北向资金 + 成交量 -->
+        <div class="computer-row">
+          <div class="computer-unit">
+            <div class="asset-badge flow">北向资金</div>
+            <div class="unit-header">// NORTH FLOW MONITOR</div>
+            <div class="crt-screen">
+              <div class="screen-content">
+                <div class="data-row">
+                  <span class="data-label">NET INFLOW</span>
+                  <span class="data-value" id="northFlowValue">--</span>
+                </div>
+                <div class="chart-crt">
+                  <canvas id="northFlowChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="computer-unit">
+            <div class="asset-badge volume">成交量</div>
+            <div class="unit-header">// VOLUME ANALYZER</div>
+            <div class="crt-screen">
+              <div class="screen-content">
+                <div class="data-row">
+                  <span class="data-label">VOLUME</span>
+                  <span class="data-value" id="volumeValue">--</span>
+                </div>
+                <div class="data-row">
+                  <span class="data-label">VS 20D AVG</span>
+                  <span class="data-value" id="volumeVsAvg">--</span>
+                </div>
+                <div class="chart-crt">
+                  <canvas id="volumeChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DIVIDER -->
+        <div class="row-divider">
+          <span class="divider-text">── US MARKET MODULE ──</span>
+        </div>
+
+        <!-- ROW 4: 美股 -->
+        <div class="computer-row">
+          <div class="computer-unit">
+            <div class="asset-badge us-market">VIX</div>
+            <div class="unit-header">// VOLATILITY INDEX</div>
+            <div class="crt-screen">
+              <div class="screen-content">
+                <div class="data-row">
+                  <span class="data-label">VIX VALUE</span>
+                  <span class="data-value" id="vixValue">--</span>
+                </div>
+                <div class="data-row">
+                  <span class="data-label">CHANGE</span>
+                  <span class="data-value" id="vixChange">--</span>
+                </div>
+                <div class="chart-crt">
+                  <canvas id="vixChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="computer-unit">
+            <div class="asset-badge us-market">S&P 500</div>
+            <div class="unit-header">// INDEX TRACKER</div>
+            <div class="crt-screen">
+              <div class="screen-content">
+                <div class="data-row">
+                  <span class="data-label">SPX VALUE</span>
+                  <span class="data-value" id="sp500Value">--</span>
+                </div>
+                <div class="data-row">
+                  <span class="data-label">CHANGE</span>
+                  <span class="data-value" id="sp500Change">--</span>
+                </div>
+                <div class="chart-crt">
+                  <canvas id="sp500Chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /computer-lab -->
+
+      <!-- Status -->
       <div class="status-bar">
-        Made with <span style="color:#ef4444;">❤</span> · 数据仅供参考，不构成投资建议
+        SENTIMENT LAB v1.0 &nbsp;·&nbsp; 数据仅供参考，不构成投资建议 &nbsp;·&nbsp; <span style="color:var(--down);">❤</span>
       </div>
-    </div>
-  </div>
+    </div><!-- /content -->
+  </div><!-- /container -->
 
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
   <script>
   // ===== Chart.js 全局配置 =====
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.font.family = 'Inter, sans-serif';
-  Chart.defaults.font.size = 10;
+  Chart.defaults.color = '#888';
+  Chart.defaults.font.family = "'Space Mono', monospace";
+  Chart.defaults.font.size = 9;
 
-  // ===== 工具 =====
   function $(id) { return document.getElementById(id); }
 
   function showToast(msg, duration) {
     const t = $('toast');
-    t.textContent = msg;
+    t.textContent = '> ' + msg;
     t.classList.add('show');
     clearTimeout(t._timer);
     t._timer = setTimeout(() => t.classList.remove('show'), duration || 2500);
@@ -507,33 +823,37 @@
     if (n === undefined || n === null || isNaN(n)) return '--';
     return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-
   function formatInt(n) {
     if (n === undefined || n === null || isNaN(n)) return '--';
     return Number(n).toLocaleString('zh-CN');
   }
-
   function changeClass(val) {
     if (val > 0) return 'up';
     if (val < 0) return 'down';
-    return 'flat';
+    return '';
   }
-
   function changeSign(val) {
     if (val === undefined || val === null || isNaN(val)) return '--';
     const n = Number(val);
     return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
   }
-
   function panicColor(val) {
-    if (val < 20) return '#22c55e';
+    if (val < 20) return '#33FF33';
     if (val < 40) return '#84cc16';
     if (val < 60) return '#f59e0b';
     if (val < 80) return '#f97316';
     return '#ef4444';
   }
+  function panicLabel(val) {
+    if (val < 15) return '极低恐慌';
+    if (val < 30) return '低恐慌';
+    if (val < 45) return '平稳';
+    if (val < 60) return '中等恐慌';
+    if (val < 75) return '高恐慌';
+    return '极度恐慌';
+  }
 
-  function createChart(id, labels, data, color, fillColor) {
+  function createChart(id, labels, data, color) {
     const canvas = $(id);
     if (!canvas) return null;
     const ctx = canvas.getContext('2d');
@@ -544,9 +864,9 @@
         datasets: [{
           data: data,
           borderColor: color,
-          backgroundColor: fillColor || color + '20',
-          borderWidth: 2,
-          pointRadius: 2,
+          backgroundColor: color + '20',
+          borderWidth: 1.5,
+          pointRadius: 1.5,
           pointHoverRadius: 4,
           fill: true,
           tension: 0.3
@@ -558,35 +878,27 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1e293b',
-            titleColor: '#94a3b8',
-            bodyColor: '#e2e8f0',
-            borderColor: '#334155',
+            backgroundColor: '#1A1A1A',
+            titleColor: '#999',
+            bodyColor: '#e0e0e0',
+            borderColor: '#333',
             borderWidth: 1,
             padding: 8,
-            cornerRadius: 8,
-            displayColors: false
+            cornerRadius: 4,
+            displayColors: false,
+            titleFont: { family: "'Space Mono', monospace", size: 9 },
+            bodyFont: { family: "'Space Mono', monospace", size: 10 }
           }
         },
         scales: {
-          x: {
-            display: false,
-            grid: { display: false }
-          },
-          y: {
-            display: false,
-            grid: { display: false }
-          }
+          x: { display: false, grid: { display: false } },
+          y: { display: false, grid: { display: false } }
         },
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        }
+        interaction: { intersect: false, mode: 'index' }
       }
     });
   }
 
-  // ===== 生成日期标签 =====
   function dateLabels(count) {
     const labels = [];
     const now = new Date();
@@ -598,13 +910,11 @@
     return labels;
   }
 
-  // ===== 渲染主函数 =====
   function render(data) {
     const a = data.a_share || {};
     const us = data.us_market || {};
-    const isMock = data.data_note && data.data_note.includes('模拟');
 
-    // 数据注记
+    // 注记
     if (data.data_note) {
       const note = $('dataNote');
       note.textContent = '⚠ ' + data.data_note;
@@ -612,26 +922,9 @@
     }
 
     // 更新时间
-    $('updateTimeText').textContent = '数据截止: ' + (data.update_time || '--');
-    if (isMock || !data.update_time) {
-      $('statusDot').classList.add('offline');
-    }
-
-    // 市场状态 (按交易时间简单判断)
-    const now = new Date();
-    const h = now.getUTCHours() + 8; // CST
-    const isTradingDay = now.getDay() >= 1 && now.getDay() <= 5;
-    const isATrading = isTradingDay && h >= 9 && h < 15;
-    const isUSTrading = isTradingDay && (h >= 21 || h < 5);
-    if (isATrading) {
-      $('marketStatus').textContent = '🔴 交易中';
-    } else if (isUSTrading) {
-      $('marketStatus').textContent = '🔴 美股交易中';
-    } else if (isTradingDay) {
-      $('marketStatus').textContent = '⏸ 已收盘';
-    } else {
-      $('marketStatus').textContent = '📅 休市中';
-    }
+    $('updateTimeText').textContent = data.update_time || '--';
+    $('navTimeText').textContent = data.update_time || '--';
+    if (!data.update_time) $('statusDot').classList.add('offline');
 
     // ---- 三大指数 ----
     const idxList = a.indexes || [];
@@ -640,77 +933,62 @@
     idxList.forEach(idx => {
       const chg = idx.change_pct || 0;
       const div = document.createElement('div');
-      div.className = 'index-card';
+      div.className = 'index-item';
       div.innerHTML = `
-        <div class="name">${idx.name}</div>
-        <div class="price">${formatNum(idx.price)}</div>
-        <div class="change ${changeClass(chg)}">${changeSign(chg)}</div>
+        <div class="idx-name">${idx.name}</div>
+        <div class="idx-price">${formatNum(idx.price)}</div>
+        <div class="idx-change ${changeClass(chg)}">${changeSign(chg)}</div>
       `;
       idxGrid.appendChild(div);
     });
 
     // ---- 市场情绪 ----
     const sent = a.market_sentiment || {};
-    const sentGrid = $('sentimentGrid');
     const noSentData = sent.up_count === 0 && sent.down_count === 0;
-    sentGrid.innerHTML = `
-      <div class="sentiment-item">
-        <span class="label">📗 上涨</span>
-        <span class="value up">${noSentData ? '暂无数据' : formatInt(sent.up_count)}</span>
+    $('sentimentGrid').innerHTML = `
+      <div class="data-row">
+        <span class="data-label">上涨</span>
+        <span class="data-value up">${noSentData ? '--' : formatInt(sent.up_count)}</span>
       </div>
-      <div class="sentiment-item">
-        <span class="label">📕 下跌</span>
-        <span class="value down">${noSentData ? '暂无数据' : formatInt(sent.down_count)}</span>
+      <div class="data-row">
+        <span class="data-label">下跌</span>
+        <span class="data-value down">${noSentData ? '--' : formatInt(sent.down_count)}</span>
       </div>
-      <div class="sentiment-item">
-        <span class="label">🚀 涨停</span>
-        <span class="value up">${noSentData ? '暂无数据' : formatInt(sent.limit_up)}</span>
+      <div class="data-row">
+        <span class="data-label">涨停</span>
+        <span class="data-value up">${noSentData ? '--' : formatInt(sent.limit_up)}</span>
       </div>
-      <div class="sentiment-item">
-        <span class="label">💧 跌停</span>
-        <span class="value down">${noSentData ? '暂无数据' : formatInt(sent.limit_down)}</span>
+      <div class="data-row">
+        <span class="data-label">跌停</span>
+        <span class="data-value down">${noSentData ? '--' : formatInt(sent.limit_down)}</span>
       </div>
     `;
-    // 涨跌家数不可用时在 dataNote 显示原因
-    if (noSentData && data.data_note) {
-      const note = $('dataNote');
-      note.textContent = '⚠ ' + data.data_note;
-      note.classList.add('show');
-    }
 
     // ---- 恐慌指数 ----
     const panic = a.panic_index || {};
     const pVal = panic.value || 0;
     $('panicValue').textContent = Math.round(pVal);
-    $('panicLabel').textContent = panic.label || '--';
+    $('panicLabel').textContent = panic.label || panicLabel(pVal);
     $('panicLabel').style.color = panicColor(pVal);
 
-    // 环形进度
     const arc = $('panicArc');
-    const circumference = 2 * Math.PI * 16; // r=16
+    const circumference = 2 * Math.PI * 16;
     const offset = circumference - (pVal / 100) * circumference;
     arc.style.strokeDasharray = circumference;
     arc.style.strokeDashoffset = offset;
     arc.style.stroke = panicColor(pVal);
 
-    // 恐慌历史图
     const panicHist = panic.history || [];
     if (panicHist.length >= 2) {
-      createChart(
-        'panicChart',
-        dateLabels(panicHist.length),
-        panicHist,
-        panicColor(pVal),
-        panicColor(pVal) + '15'
-      );
+      createChart('panicChart', dateLabels(panicHist.length), panicHist, panicColor(pVal));
     }
 
     // ---- 北向资金 ----
     const nf = a.north_flow || {};
     const nfVal = nf.value ?? 0;
-    $('northFlowValue').textContent = nfVal >= 0 ? '+' + nfVal.toFixed(1) : nfVal.toFixed(1);
-    $('northFlowUnit').textContent = nf.unit || '亿';
-    $('northFlowValue').style.color = nfVal >= 0 ? '#22c55e' : '#ef4444';
+    const nfEl = $('northFlowValue');
+    nfEl.textContent = (nfVal >= 0 ? '+' : '') + nfVal.toFixed(1) + ' ' + (nf.unit || '亿');
+    nfEl.className = 'data-value ' + (nfVal >= 0 ? 'up' : 'down');
 
     const nfHist = nf.history || [];
     if (nfHist.length >= 2) {
@@ -720,41 +998,38 @@
     // ---- 成交量 ----
     const vol = a.volume || {};
     const volVal = vol.value ?? 0;
-    $('volumeValue').textContent = formatNum(volVal);
-    $('volumeUnit').textContent = vol.unit || '亿';
+    $('volumeValue').textContent = formatNum(volVal) + ' ' + (vol.unit || '亿');
     const vs = vol.vs_20day_avg ?? 0;
     const vsEl = $('volumeVsAvg');
-    vsEl.textContent = (vs > 0 ? '+' : '') + vs.toFixed(1) + '% vs 20日均';
-    vsEl.className = 'card-change ' + changeClass(vs);
+    vsEl.textContent = (vs > 0 ? '+' : '') + vs.toFixed(1) + '%';
+    vsEl.className = 'data-value ' + changeClass(vs);
 
     const volHist = vol.history || [];
     if (volHist.length >= 2) {
-      createChart('volumeChart', dateLabels(volHist.length), volHist, '#60a5fa');
+      createChart('volumeChart', dateLabels(volHist.length), volHist, '#6366f1');
     }
 
     // ---- 美股 ----
-    // VIX
     const vix = us.vix || {};
     const vixVal = vix.value ?? 0;
-    $('vixValue').textContent = vixVal.toFixed(2);
+    $('vixValue').textContent = vixVal > 0 ? vixVal.toFixed(2) : '暂无数据';
     const vixChg = vix.change_pct ?? 0;
     const vixEl = $('vixChange');
     vixEl.textContent = changeSign(vixChg);
-    vixEl.className = 'card-change ' + changeClass(vixChg);
+    vixEl.className = 'data-value ' + changeClass(vixChg);
 
     const vixHist = vix.history || [];
     if (vixHist.length >= 2) {
       createChart('vixChart', dateLabels(vixHist.length), vixHist, '#f59e0b');
     }
 
-    // 标普500
     const sp = us.sp500 || {};
     const spVal = sp.value ?? 0;
     $('sp500Value').textContent = formatNum(spVal);
     const spChg = sp.change_pct ?? 0;
     const spEl = $('sp500Change');
     spEl.textContent = changeSign(spChg);
-    spEl.className = 'card-change ' + changeClass(spChg);
+    spEl.className = 'data-value ' + changeClass(spChg);
 
     const spHist = sp.history || [];
     if (spHist.length >= 2) {
@@ -762,7 +1037,6 @@
     }
   }
 
-  // ===== 加载数据 =====
   async function loadData() {
     try {
       $('loading').style.display = 'block';
@@ -771,24 +1045,22 @@
 
       const resp = await fetch('./data.json?t=' + Date.now());
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
       const data = await resp.json();
 
       $('loading').style.display = 'none';
       $('content').style.display = 'block';
 
       render(data);
-      showToast('✅ 数据已更新: ' + (data.update_time || '--'), 2000);
+      showToast('数据已同步: ' + (data.update_time || '--'), 2000);
     } catch (err) {
       console.error('Load error:', err);
       $('loading').style.display = 'none';
       $('error').style.display = 'block';
       $('errorMsg').textContent = err.message || '网络请求失败';
-      showToast('❌ 加载失败: ' + (err.message || '未知错误'), 3000);
+      showToast('ERROR: ' + (err.message || '未知错误'), 3000);
     }
   }
 
-  // ===== 启动 =====
   document.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
