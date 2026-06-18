@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-06-17 14:09",
+  "update_time": "2026-06-18 13:48",
   "a_share": {
     "indexes": [
       {
@@ -10,10 +10,10 @@
       }
     ],
     "market_sentiment": {
-      "up_count": 2102,
-      "down_count": 4501,
-      "limit_up": 86,
-      "limit_down": 1
+      "up_count": 2602,
+      "down_count": 3950,
+      "limit_up": 91,
+      "limit_down": 12
     },
     "panic_index": {
       "value": 42.6,
@@ -50,11 +50,11 @@
       "history": []
     },
     "sp500": {
-      "value": 7515.79,
-      "change_pct": 0.06,
+      "value": 7476.87,
+      "change_pct": 0.77,
       "history": [
-        7529.18,
-        7515.79
+        7509.44,
+        7476.87
       ]
     }
   },
