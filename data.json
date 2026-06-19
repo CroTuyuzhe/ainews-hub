@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-06-18 13:48",
+  "update_time": "2026-06-19 13:55",
   "a_share": {
     "indexes": [
       {
@@ -45,18 +45,17 @@
   },
   "us_market": {
     "vix": {
-      "value": 0,
-      "change_pct": 0,
+      "value": 21.9,
+      "change_pct": -3.52,
       "history": []
     },
     "sp500": {
-      "value": 7476.87,
-      "change_pct": 0.77,
+      "value": 7500.58,
+      "change_pct": 1.08,
       "history": [
-        7509.44,
-        7476.87
+        7511.07,
+        7500.58
       ]
     }
-  },
-  "data_note": "VIX数据暂不可用"
+  }
 }
