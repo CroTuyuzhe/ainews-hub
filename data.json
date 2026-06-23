@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-06-22 15:36",
+  "update_time": "2026-06-23 13:23",
   "a_share": {
     "indexes": [
       {
@@ -10,17 +10,17 @@
       }
     ],
     "market_sentiment": {
-      "up_count": 3433,
-      "down_count": 3079,
-      "limit_up": 134,
-      "limit_down": 4
+      "up_count": 3503,
+      "down_count": 2961,
+      "limit_up": 96,
+      "limit_down": 39
     },
     "panic_index": {
-      "value": 34.8,
-      "label": "平稳",
+      "value": 42.0,
+      "label": "恐慌",
       "history": [
         37.0,
-        34.8
+        42.0
       ]
     },
     "north_flow": {
@@ -45,18 +45,17 @@
   },
   "us_market": {
     "vix": {
-      "value": 0,
-      "change_pct": 0,
+      "value": 23.22,
+      "change_pct": 6.27,
       "history": []
     },
     "sp500": {
-      "value": 7480.09,
-      "change_pct": -0.27,
+      "value": 7357.45,
+      "change_pct": -1.54,
       "history": [
-        7530.01,
-        7480.09
+        7366.51,
+        7357.45
       ]
     }
-  },
-  "data_note": "VIX数据暂不可用"
+  }
 }
