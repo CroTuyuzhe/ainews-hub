@@ -1,26 +1,26 @@
 {
-  "update_time": "2026-07-01 13:18",
+  "update_time": "2026-07-02 12:29",
   "a_share": {
     "indexes": [
       {
         "name": "上证指数",
         "code": "000001",
-        "price": 4112.45,
+        "price": 4112.16,
         "change_pct": 0.0
       }
     ],
     "market_sentiment": {
-      "up_count": 5173,
-      "down_count": 1445,
-      "limit_up": 152,
-      "limit_down": 6
+      "up_count": 2591,
+      "down_count": 3925,
+      "limit_up": 93,
+      "limit_down": 40
     },
     "panic_index": {
-      "value": 24.9,
-      "label": "平稳",
+      "value": 48.1,
+      "label": "恐慌",
       "history": [
         37.0,
-        24.9
+        48.1
       ]
     },
     "north_flow": {
@@ -45,14 +45,18 @@
   },
   "us_market": {
     "vix": {
-      "value": 21.29,
-      "change_pct": -1.89,
+      "value": 0,
+      "change_pct": 0,
       "history": []
     },
     "sp500": {
-      "value": 7499.36,
-      "change_pct": 0.0,
-      "history": []
+      "value": 7483.23,
+      "change_pct": -0.22,
+      "history": [
+        7521.81,
+        7483.23
+      ]
     }
-  }
+  },
+  "data_note": "VIX数据暂不可用"
 }
