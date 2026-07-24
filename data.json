@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-07-23 12:10",
+  "update_time": "2026-07-24 12:03",
   "a_share": {
     "indexes": [
       {
@@ -10,17 +10,17 @@
       }
     ],
     "market_sentiment": {
-      "up_count": 5089,
-      "down_count": 1512,
-      "limit_up": 116,
-      "limit_down": 2
+      "up_count": 715,
+      "down_count": 5915,
+      "limit_up": 40,
+      "limit_down": 25
     },
     "panic_index": {
-      "value": 24.7,
-      "label": "平稳",
+      "value": 62.2,
+      "label": "恐惧",
       "history": [
         37.0,
-        24.7
+        62.2
       ]
     },
     "north_flow": {
@@ -50,11 +50,11 @@
       "history": []
     },
     "sp500": {
-      "value": 7498.96,
-      "change_pct": -0.14,
+      "value": 7408.3,
+      "change_pct": -1.21,
       "history": [
-        7525.94,
-        7498.96
+        7450.12,
+        7408.3
       ]
     }
   },
