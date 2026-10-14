@@ -1,26 +1,26 @@
 {
-  "update_time": "2026-10-13 17:45",
+  "update_time": "2026-10-14 15:23",
   "a_share": {
     "indexes": [
       {
         "name": "上证指数",
         "code": "000001",
-        "price": 3800.86,
+        "price": 4112.16,
         "change_pct": 0.0
       }
     ],
     "market_sentiment": {
-      "up_count": 3652,
-      "down_count": 2837,
-      "limit_up": 67,
-      "limit_down": 8
+      "up_count": 1101,
+      "down_count": 5498,
+      "limit_up": 36,
+      "limit_down": 11
     },
     "panic_index": {
-      "value": 35.7,
-      "label": "平稳",
+      "value": 55.3,
+      "label": "恐慌",
       "history": [
         37.0,
-        35.7
+        55.3
       ]
     },
     "north_flow": {
@@ -45,17 +45,18 @@
   },
   "us_market": {
     "vix": {
-      "value": 16.07,
-      "change_pct": 0.19,
+      "value": 0,
+      "change_pct": 0,
       "history": []
     },
     "sp500": {
-      "value": 7801.48,
-      "change_pct": -0.07,
+      "value": 7746.01,
+      "change_pct": -0.76,
       "history": [
-        7814.15,
-        7801.48
+        7789.15,
+        7746.01
       ]
     }
-  }
+  },
+  "data_note": "VIX数据暂不可用"
 }
