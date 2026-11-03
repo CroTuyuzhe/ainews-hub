@@ -1,26 +1,26 @@
 {
-  "update_time": "2026-11-02 20:28",
+  "update_time": "2026-11-03 17:59",
   "a_share": {
     "indexes": [
       {
         "name": "上证指数",
         "code": "000001",
-        "price": 3638.03,
+        "price": 3608.1,
         "change_pct": 0.0
       }
     ],
     "market_sentiment": {
-      "up_count": 5673,
-      "down_count": 947,
-      "limit_up": 125,
-      "limit_down": 8
+      "up_count": 2401,
+      "down_count": 4117,
+      "limit_up": 48,
+      "limit_down": 17
     },
     "panic_index": {
-      "value": 22.5,
-      "label": "平稳",
+      "value": 48.1,
+      "label": "恐慌",
       "history": [
         37.0,
-        22.5
+        48.1
       ]
     },
     "north_flow": {
@@ -45,16 +45,16 @@
   },
   "us_market": {
     "vix": {
-      "value": 18.34,
-      "change_pct": -0.38,
+      "value": 18.16,
+      "change_pct": -1.49,
       "history": []
     },
     "sp500": {
-      "value": 7563.37,
-      "change_pct": -0.22,
+      "value": 7580.85,
+      "change_pct": 0.52,
       "history": [
-        7662.23,
-        7563.37
+        7588.7,
+        7580.85
       ]
     }
   }
