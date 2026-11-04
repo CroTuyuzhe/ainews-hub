@@ -81,3 +81,23 @@ def fetch_north_flow(now, get_json):
               'pageSize':90, 'pageNumber':1, 'sortColumns':'TRADE_DATE','sortTypes':-1,
               'source':'WEB','client':'WEB'}
     return north_history(get_json('https://datacenter-web.eastmoney.com/api/data/v1/get?'+urlencode(params)), now)
+
+
+def legu_breadth(now):
+    """Public dated breadth snapshot, including independent limit counts."""
+    html = download('https://legulegu.com/stockdata/market-activity')
+    stamp_match = re.search(r'class=[\"\']market-activity-time[\"\'][^>]*>\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', html)
+    if not stamp_match: raise ValueError('Legu source timestamp missing')
+    stamp = datetime.strptime(stamp_match[1], '%Y-%m-%d %H:%M:%S').replace(tzinfo=ZoneInfo('Asia/Shanghai'))
+    if stamp > datetime.fromisoformat(now): raise ValueError('Future breadth snapshot')
+    values = {}
+    for field, ident in [('up_count','totalUp'),('down_count','totalDown'),('limit_up','limitUp'),('limit_down','limitDown')]:
+        match = re.search(r'id=[\"\']'+ident+r'[\"\'][^>]*data-chart=[\"\'](\d+)[\"\']', html)
+        if not match: raise ValueError('Incomplete Legu breadth')
+        values[field] = int(match[1])
+    if values['up_count'] + values['down_count'] <= 0: raise ValueError('Empty breadth')
+    metric = fresh('market_sentiment', values['up_count'] + values['down_count'], stamp.date().isoformat(), now, **values)
+    metric['meta'].update(source='乐咕乐股 · 沪深A股赚钱效应快照',
+        observed_at=stamp.isoformat(), session='closed' if stamp.hour >= 15 else 'intraday',
+        reason='独立备用口径：沪深A股（不含B股）；涨跌停使用同一来源')
+    return metric

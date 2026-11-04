@@ -13,6 +13,7 @@ function meta(metric, target) {
   host.append(element('span',({fresh:'已采集',cached:'历史 / 缓存',missing:'暂无数据',demo:'演示数据'})[status]||'暂无数据','metric-badge '+status));
   host.append(element('span',`行情 ${m.trade_date||'未取得'} · ${m.source||'来源未提供'}`));
   if(m.fetched_at) host.append(element('span',` · 采集 ${new Date(m.fetched_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})}`));
+  if(m.observed_at)host.append(element('span',` · 源更新时间 ${new Date(m.observed_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})}`));
   if(m.reason)host.append(element('span',m.reason,'metric-reason'));
 }
 function selectMarket(next, focus=false) {
@@ -39,12 +40,13 @@ function render(data) {
  for(const k of ['market_sentiment','panic_index','volume','north_flow'])meta(a[k],'meta-'+k);
  for(const k of ['vix','sp500'])meta(u[k],'meta-'+k);
  $('sentimentGrid').replaceChildren(); for(const [k,label] of [['up_count','上涨'],['down_count','下跌'],['limit_up','涨停'],['limit_down','跌停']])$('sentimentGrid').append(element('div',`${label} ${fmt(a.market_sentiment[k],0)}`));
- put('panicValue',fmt(a.panic_index.value,1)); put('panicLabel',a.panic_index.label||'数据不足'); $('panicArc').style.strokeDashoffset=String(100.53*(1-(number(a.panic_index.value)?a.panic_index.value:0)/100));
+ put('panicValue',fmt(a.panic_index.value,1)); put('panicLabel',(a.panic_index.label||'数据不足')+(a.panic_index.calculation_mode==='partial'?` · 参考（${Math.round(a.panic_index.coverage*100)}%输入）`:'')); $('panicArc').style.strokeDashoffset=String(100.53*(1-(number(a.panic_index.value)?a.panic_index.value:0)/100));
  put('northFlowValue',number(a.north_flow.value)?`${fmt(a.north_flow.value)} 亿`:'--'); put('volumeValue',number(a.volume.value)?`${fmt(a.volume.value)} 亿`:'--'); put('volumeVsAvg',pct(a.volume.vs_20day_avg));
  for(const k of ['vix','sp500']){put(k+'Value',fmt(u[k].value));put(k+'Change',pct(u[k].change_pct));}
  const components=$('scoreComponents'); components.replaceChildren();
+ if(a.panic_index.calculation_mode==='partial')components.append(element('p',a.panic_index.meta.reason));
  if(!a.panic_index.components?.length)components.append(element('p','输入数据不足，暂不合成分数。'));
- else {const table=element('table','','history-table');table.append(element('caption','本期分项贡献'));const body=document.createElement('tbody');for(const c of a.panic_index.components){const row=document.createElement('tr');row.append(element('td',c.name),element('td',`${fmt(c.score)} × ${c.weight*100}%`),element('td',fmt(c.contribution)));body.append(row);}table.append(body);components.append(table);}
+ else {const table=element('table','','history-table');table.append(element('caption','本期分项贡献'));const body=document.createElement('tbody');for(const c of a.panic_index.components){const row=document.createElement('tr');row.append(element('td',c.name),element('td',`${fmt(c.score)} × ${fmt(c.weight*100)}%`),element('td',fmt(c.contribution)));body.append(row);}table.append(body);components.append(table);}
  renderHistory(); selectMarket(market);
 }
 function renderHistory(){

@@ -42,7 +42,7 @@ class ModelTests(unittest.TestCase):
     def test_independent_fallback(self):
         previous=migrate({})
         previous['us_market']['vix']=fresh('vix',18,'2026-11-03','2026-11-04T08:00:00+08:00')
-        with patch('fetch_data.daily_index',side_effect=RuntimeError),patch('fetch_data.yahoo_series',side_effect=RuntimeError),patch('fetch_data.cboe_vix',side_effect=RuntimeError),patch('fetch_data.sina_sp500',side_effect=RuntimeError),patch('fetch_data.fetch_north_flow',side_effect=RuntimeError):
+        with patch('fetch_data.daily_index',side_effect=RuntimeError),patch('fetch_data.yahoo_series',side_effect=RuntimeError),patch('fetch_data.cboe_vix',side_effect=RuntimeError),patch('fetch_data.sina_sp500',side_effect=RuntimeError),patch('fetch_data.fetch_north_flow',side_effect=RuntimeError),patch('fetch_data.legu_breadth',side_effect=RuntimeError):
             data=collect(previous)
         self.assertEqual(len(data['a_share']['indexes']),3)
         self.assertEqual(data['us_market']['vix']['value'],18)

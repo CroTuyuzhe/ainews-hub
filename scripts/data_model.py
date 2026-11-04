@@ -53,7 +53,9 @@ def fallback(key, old, reason):
         return result
     return missing(key, reason)
 
-def calc_panic(sentiment, volume):
+def calc_panic(sentiment, volume, allow_partial=False):
+    if allow_partial:
+        return calc_available_panic(sentiment, volume)
     values = [sentiment.get(k) for k in ('up_count', 'down_count', 'limit_up', 'limit_down')]
     vs = volume.get('vs_20day_avg')
     if not all(finite(v) and v >= 0 for v in values) or not finite(vs):
@@ -72,6 +74,39 @@ def calc_panic(sentiment, volume):
     value = round(sum(c['contribution'] for c in components), 1)
     label = '乐观' if value < 20 else '平稳' if value < 40 else '恐慌' if value < 60 else '恐惧' if value < 80 else '极度恐慌'
     return {'value': value, 'label': label, 'components': components}
+
+def calc_available_panic(sentiment, volume):
+    """Keep full formula intact; explicitly normalize available reference components."""
+    day = sentiment.get('meta', {}).get('trade_date')
+    up, down = sentiment.get('up_count'), sentiment.get('down_count')
+    if not valid_date(day) or not all(finite(v) and v >= 0 for v in (up, down)) or up + down <= 0:
+        return {'value': None, 'label': '数据不足', 'components': []}
+    raw = [('下跌占比', down/(up+down)*100, .4)]
+    lu, ld = sentiment.get('limit_up'), sentiment.get('limit_down')
+    if all(finite(v) and v >= 0 for v in (lu, ld)) and lu + ld > 0:
+        raw.append(('跌停占比', ld/(lu+ld)*100, .3))
+    vs = volume.get('vs_20day_avg')
+    aligned = day == volume.get('meta', {}).get('trade_date')
+    closed = sentiment.get('meta', {}).get('session') != 'intraday'
+    if finite(vs) and aligned and closed:
+        liquidity = 100 if vs < -30 else 70 if vs < -10 else 50 if vs < 0 else 30 if vs < 20 else 10
+        raw.append(('成交额偏离', liquidity, .3))
+    coverage = round(sum(w for _, _, w in raw), 2)
+    if coverage < .7:
+        return {'value': None, 'label': '数据不足', 'components': []}
+    if coverage == 1:
+        result = calc_panic(sentiment, volume)
+        result.update(calculation_mode='complete', coverage=1, reason='同日完整输入，按原公式40% / 30% / 30%计算')
+        return result
+    components = [{'name':name, 'score':round(score,2), 'base_weight':weight,
+                   'weight':weight/coverage, 'contribution':round(score*weight/coverage,2)}
+                  for name, score, weight in raw]
+    value = round(sum(c['contribution'] for c in components),1)
+    label = '乐观' if value < 20 else '平稳' if value < 40 else '恐慌' if value < 60 else '恐惧' if value < 80 else '极度恐慌'
+    return {'value':value, 'label':label, 'components':components,
+            'calculation_mode':'partial', 'coverage':coverage,
+            'reason':f'参考评分：有效输入覆盖原公式{coverage:.0%}，按有效权重归一；盘中或不同日的成交额不纳入，不与完整收盘评分直接比较，不写入收盘历史'}
+
 
 def migrate(data):
     """Do not invent dates for legacy histories or relabel VIXY as VIX."""

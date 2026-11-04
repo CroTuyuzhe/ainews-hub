@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
-from source_adapters import cboe_vix, sina_sp500, fetch_north_flow
+from source_adapters import cboe_vix, sina_sp500, fetch_north_flow, legu_breadth
 from data_model import SOURCES, calc_panic, fallback, finite, fresh, history_merge, migrate, missing, validate
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -89,12 +89,15 @@ def fetch_breadth(trade_date, now):
     items = (payload.get('data') or {}).get('diff', [])
     if len(items) != 2: raise ValueError('Missing exchange breadth')
     dates = {datetime.fromtimestamp(int(i['f124']), ZoneInfo('Asia/Shanghai')).date().isoformat() for i in items}
-    if dates != {trade_date}: raise ValueError('Breadth session differs from index session')
+    if len(dates) != 1: raise ValueError('Exchanges have different snapshot dates')
+    trade_date = next(iter(dates))
+    observed = max(datetime.fromtimestamp(int(i['f124']), ZoneInfo('Asia/Shanghai')) for i in items)
     counts = [(int(i['f104']), int(i['f105'])) for i in items]
     up, down = sum(i[0] for i in counts), sum(i[1] for i in counts)
     if up < 0 or down < 0 or up + down <= 0: raise ValueError('Missing breadth counts')
     result = fresh('market_sentiment', up + down, trade_date, now,
                    up_count=up, down_count=down, limit_up=None, limit_down=None)
+    result['meta'].update(observed_at=observed.isoformat(), session='closed' if observed.hour >= 15 else 'intraday')
     result['meta']['source'] = '东方财富 · 上证综指＋深证综指成分涨跌家数（含B股，不含北交所）'
     result['meta']['reason'] = '涨跌停池未取得；涨跌家数仍可独立查看'
     try:
@@ -156,10 +159,15 @@ def collect(previous):
         a['volume'].setdefault('vs_20day_avg', None)
     a['volume']['history'] = history_merge(prev_a.get('volume', {}).get('history', []), a['volume'].get('history', []))
     try:
-        day = series['000001'][-1]['date']
+        day = series.get('000001', [{}])[-1].get('date')
         a['market_sentiment'] = fetch_breadth(day, now)
+        if any(a['market_sentiment'].get(k) is None for k in ('limit_up','limit_down')):
+            try: a['market_sentiment'] = legu_breadth(now)
+            except Exception: pass
     except Exception as exc:
-        a['market_sentiment'] = fallback('market_sentiment', prev_a.get('market_sentiment'), f'市场广度不可用：{type(exc).__name__}')
+        try: a['market_sentiment'] = legu_breadth(now)
+        except Exception as backup_exc:
+            a['market_sentiment'] = fallback('market_sentiment', prev_a.get('market_sentiment'), f'市场广度主备源不可用：{type(backup_exc).__name__}')
     try: a['north_flow'] = fetch_north_flow(now, get_json)
     except Exception as exc:
         a['north_flow'] = fallback('north_flow', prev_a.get('north_flow'), f'北向历史源不可用：{type(exc).__name__}；每日净买额已停止披露')
@@ -172,17 +180,26 @@ def collect(previous):
                 metric = fallback(key, previous.get('us_market', {}).get(key), f'主备源采集失败：{type(backup_exc).__name__}')
         metric['history'] = history_merge(previous.get('us_market', {}).get(key, {}).get('history', []), metric.get('history', []))
         result['us_market'][key] = metric
-    score = calc_panic(a['market_sentiment'], a['volume'])
+    score = calc_panic(a['market_sentiment'], a['volume'], allow_partial=True)
     if score['value'] is not None:
-        day = a['volume']['meta']['trade_date']
-        a['panic_index'] = fresh('panic_index', score['value'], day, now, label=score['label'], components=score['components'],
-            history=history_merge(prev_a.get('panic_index', {}).get('history', []), [{'date':day,'value':score['value']}]))
-        if any(a[k]['meta']['status'] == 'cached' for k in ('market_sentiment','volume')):
-            a['panic_index']['meta'].update(status='cached', reason='依赖缓存输入；行情日期保持不变')
+        day = a['market_sentiment']['meta']['trade_date']
+        complete = score['calculation_mode'] == 'complete'
+        closed = a['market_sentiment']['meta'].get('session') == 'closed'
+        reason = score.pop('reason', '')
+        value = score.pop('value')
+        history = prev_a.get('panic_index', {}).get('history', [])
+        if complete and closed:
+            history = history_merge(history, [{'date':day,'value':value}])
+        a['panic_index'] = fresh('panic_index', value, day, now, **score, history=history)
+        a['panic_index']['meta'].update(reason=reason, session='closed' if closed else 'intraday')
+        if a['market_sentiment']['meta']['status'] == 'cached' or (complete and a['volume']['meta']['status'] == 'cached'):
+            a['panic_index']['meta'].update(status='cached')
     else:
-        a['panic_index'] = missing('panic_index', score['label'] + '：需同日市场广度、涨跌停池与20日成交额基线',
-                                   prev_a.get('panic_index', {}).get('history', []))
-        a['panic_index'].update(label=score['label'], components=[])
+        # A temporary source outage must not erase a previously valid score.
+        a['panic_index'] = fallback('panic_index', prev_a.get('panic_index'),
+            score['label'] + '：本次输入不足，保留上次有效评分与原行情日期')
+        a['panic_index'].setdefault('label', '数据不足')
+        a['panic_index'].setdefault('components', [])
     return result
 
 def save(data):
