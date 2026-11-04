@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "update_time": "2026-11-04T12:12:07+08:00",
+  "update_time": "2026-11-04T12:15:51+08:00",
   "mode": "live",
   "a_share": {
     "indexes": [
@@ -371,9 +371,9 @@
         ],
         "meta": {
           "status": "fresh",
-          "source": "东方财富 · 指数日线",
+          "source": "腾讯财经 · 指数日线备用源",
           "trade_date": "2026-11-03",
-          "fetched_at": "2026-11-04T12:12:07+08:00",
+          "fetched_at": "2026-11-04T12:15:51+08:00",
           "reason": ""
         },
         "code": "000001",
@@ -746,9 +746,9 @@
         ],
         "meta": {
           "status": "fresh",
-          "source": "东方财富 · 指数日线",
+          "source": "腾讯财经 · 指数日线备用源",
           "trade_date": "2026-11-03",
-          "fetched_at": "2026-11-04T12:12:07+08:00",
+          "fetched_at": "2026-11-04T12:15:51+08:00",
           "reason": ""
         },
         "code": "399001",
@@ -1121,9 +1121,9 @@
         ],
         "meta": {
           "status": "fresh",
-          "source": "东方财富 · 指数日线",
+          "source": "腾讯财经 · 指数日线备用源",
           "trade_date": "2026-11-03",
-          "fetched_at": "2026-11-04T12:12:07+08:00",
+          "fetched_at": "2026-11-04T12:15:51+08:00",
           "reason": ""
         },
         "code": "399006",
@@ -1499,11 +1499,11 @@
       "vs_20day_avg": 7.25,
       "baseline_days": 20,
       "meta": {
-        "status": "fresh",
+        "status": "cached",
         "source": "东方财富 · 上证综指与深证综指日线成交额（含B股，不含北交所；亿元）",
         "trade_date": "2026-11-03",
         "fetched_at": "2026-11-04T12:12:07+08:00",
-        "reason": ""
+        "reason": "成交额不可用：ValueError"
       }
     },
     "market_sentiment": {
@@ -1888,7 +1888,7 @@
         "status": "cached",
         "source": "东方财富 · 沪深港通北向合计历史净买额",
         "trade_date": "2024-08-16",
-        "fetched_at": "2026-11-04T12:12:07+08:00",
+        "fetched_at": "2026-11-04T12:15:51+08:00",
         "reason": "2024-08-19起不再披露每日净买额；仅展示此前历史，非当日资金流"
       }
     },
@@ -2277,7 +2277,7 @@
         "status": "fresh",
         "source": "Yahoo Finance · ^VIX",
         "trade_date": "2026-11-03",
-        "fetched_at": "2026-11-04T12:12:07+08:00",
+        "fetched_at": "2026-11-04T12:15:51+08:00",
         "reason": ""
       }
     },
@@ -2650,7 +2650,7 @@
         "status": "fresh",
         "source": "Yahoo Finance · ^GSPC",
         "trade_date": "2026-11-03",
-        "fetched_at": "2026-11-04T12:12:07+08:00",
+        "fetched_at": "2026-11-04T12:15:51+08:00",
         "reason": ""
       }
     }
