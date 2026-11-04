@@ -1,74 +1,39 @@
-# 📊 市场情绪看板
+# Sentiment Lab · 市场情绪看板
 
-A股 + 美股市场情绪实时看板 — 每日自动更新。
+面向 A股与美股的日度行情快照。保留复古 CRT 界面，支持键盘切换市场、7 / 30 / 90 个交易观察日窗口、历史表格及图表故障降级。不是实时行情终端。
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/CroTuyuzhe/ainews-hub/daily.yml?label=%E6%9B%B4%E6%96%B0&logo=github)
-![Last Commit](https://img.shields.io/github/last-commit/CroTuyuzhe/ainews-hub/main?label=%E6%9C%80%E5%90%8E%E9%83%A8%E7%BD%B2&logo=github)
+## 本地运行
 
-> 🌐 **在线看板**: `https://crotuyuzhe.github.io/ainews-hub/`
-
-## 技术栈
-
-- **前端**: 纯 HTML/CSS/JS + Chart.js
-- **数据源**: AKShare (A股) + yfinance (美股)
-- **部署**: GitHub Pages + GitHub Actions
-
-## 目录结构
-
-```
-.
-├── index.html                    # 前端页面（移动优先）
-├── scripts/
-│   ├── fetch_data.py             # 数据采集爬虫
-│   └── build_site.py             # 构建脚本
-├── data/
-│   └── data.json                 # 采集的数据
-├── .github/workflows/
-│   └── daily.yml                 # GitHub Actions 定时任务
-└── dist/                         # 构建产物（部署到 gh-pages）
-```
-
-## 数据源
-
-### A 股 (AKShare)
-- 三大指数: 上证 / 深证 / 创业板
-- 涨跌家数、涨停跌停
-- 北向资金净流入
-- 成交量
-
-### 美股 (yfinance)
-- VIX 恐慌指数
-- 标普500
-
-## 恐慌指数算法
-
-```
-恐慌指数(0-100) = 涨跌比权重40% + 涨停跌停比权重30% + 成交量偏离权重30%
-```
-
-## 自动更新
-
-- **定时**: 工作日 18:30 CST (GitHub Actions)
-- **手动触发**: 在 GitHub Actions 页面点击 `workflow_dispatch`
-- **失败保护**: 数据采集失败时自动跳过部署，保留上次正常数据
-
-## 本地开发
-
-```bash
-# 1. 安装依赖
-pip install akshare yfinance pandas requests
-
-# 2. 采集数据（--mock 使用模拟数据）
-python scripts/fetch_data.py --mock
-
-# 3. 构建
+```powershell
+pip install -r requirements.txt
+python scripts/fetch_data.py
+python -m unittest discover -s tests -v
 python scripts/build_site.py
-
-# 4. 启动本地服务
-cd dist && python -m http.server 8000
-# 访问 http://localhost:8000
+python -m http.server 5174 --directory dist
 ```
 
-## License
+访问 http://127.0.0.1:5174/ 。不要用 file:// 打开页面。已有快照可直接构建；采集全部失败时保留原文件并返回非零退出码。
 
-MIT
+## 数据与状态
+
+唯一源快照是 `data/data.json`，构建复制到根目录和 `dist/data.json`。每个指标记录行情日期、原始采集时间、来源、状态及失败原因。`fresh` 表示该次成功取得，不能理解为实时；页面对超过四个自然日的记录提示历史/缓存，节假日也可能触发此提示。`cached` 保留已验证旧值和原始日期；`missing` 使用 null，绝不以零代替。真实零值和负资金流仍可保留。
+
+- 指数：东方财富日线，上证指数 / 深证成指 / 创业板指，分别容错，仅保留15点后的完整交易日。东方财富失败时使用腾讯指数日线；腾讯成交量字段不用于成交额。
+- 沪深成交额：上证综指＋深证综指日线成交额，含B股、不含北交所；相对前20个观察日均值计算偏离，不包含当天。
+- 市场广度：同口径涨跌家数；涨跌停池来自 AKShare 独立A股口径，无法取得时单独显示缺失。
+- 美股：Yahoo Finance 的真实 `^VIX` 和 `^GSPC`，主源失败时 VIX 使用 CBOE 官方日线、标普使用原有新浪收盘快照备用源；仅取已结束的常规交易日，非 VIXY ETF；提前收市日采用保守的16点后确认。
+- 北向资金：保留东方财富沪深港通北向合计历史接口。2024-08-19起已停止每日净买额披露，只展示此前带日期的历史并标记缓存；不以沪股通单边或停披后的零占位代替，源异常时明确缺失。
+
+自定义情绪评分 = 下跌占比 × 40% + 跌停占比 × 30% + 成交额偏离分 × 30%。完整同日输入才计算；成交额分桶和分项贡献在页面中展开查看。该公式未经预测回测，不是 VIX 或投资建议。
+
+## 历史与发布
+
+历史只使用带真实日期的记录，同日重跑覆盖，最多90条。指数/美股/成交额可由上游日线回填；广度合成评分从有效采集日起逐步累积。不根据浏览器当天日期补造历史。旧版无日期数据、模拟成交额和 VIXY 记录迁移时隐藏。
+
+GitHub Actions 每个工作日 UTC 10:30 / 22:30 采集；假日仍以源行情日期为准。部署前从 gh-pages 恢复经过 schema 验证的历史。采集全部失败仅允许发布有效缓存；无有效缓存则中止。构建校验失败不发布。需要仓库允许 Actions 写权限及 Pages 使用 gh-pages 分支。
+
+Chart.js 从 CDN 异步加载。失败时保留所有数值和可展开的历史表格，并提供重试。Google Fonts 不可用时使用系统字体。
+
+## 旧版衔接
+
+原定时任务入口 `.github/workflows/daily.yml` 和 `data/data.json` 路径保持；前后端、构建器和采集器在同一提交升级为schema v2。上线前的gh-pages快照原样保留于 `data/legacy-data.json`，发布后可下载 `legacy-data.json`。旧版无日期历史不参与新公式。每次Actions恢复最新gh-pages快照后再采集，缺失时使用验证缓存；同日覆盖、跨日累积。Actions摘要逐项列出来源、状态和行情日，`version.json`记录源码提交与快照哈希，用于确认上线版本。

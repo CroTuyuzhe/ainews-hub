@@ -1,406 +1,211 @@
 #!/usr/bin/env python3
-"""
-Market Sentiment Data Fetcher v2
-适配 AKShare 1.18.x 和 yfinance，含多层降级策略
-"""
-
-import json, os, sys, time, random
-from datetime import datetime, timedelta, date
+"""Dated market observations. Failed sources retain verified cache, never demo values."""
+import argparse
+import json
+import os
+import sys
+import time
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
+from source_adapters import cboe_vix, sina_sp500, fetch_north_flow
+from data_model import SOURCES, calc_panic, fallback, finite, fresh, history_merge, migrate, missing, validate
 
-HAVE_AKSHARE = False
-HAVE_YFINANCE = False
-HAVE_PANDAS = False
-try:
-    import akshare as ak; HAVE_AKSHARE = True
-except ImportError: pass
-try:
-    import yfinance as yf; HAVE_YFINANCE = True
-except ImportError: pass
-try:
-    import pandas as pd; HAVE_PANDAS = True
-except ImportError: pass
+ROOT = Path(__file__).resolve().parent.parent
+DATA_FILE = ROOT / 'data' / 'data.json'
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-DATA_FILE = DATA_DIR / "data.json"
-PREVIOUS_FILE = DATA_DIR / "data.previous.json"
-
-def load_previous() -> dict:
-    if PREVIOUS_FILE.exists():
-        try: return json.loads(PREVIOUS_FILE.read_text(encoding="utf-8"))
-        except: pass
-    return {}
-
-def save_current(data: dict):
-    DATA_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    PREVIOUS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-MOCK = {
-    "indexes": [
-        {"name": "上证指数", "code": "000001", "price": 4086.34, "change_pct": 0.16},
-        {"name": "深证成指", "code": "399001", "price": 10520.55, "change_pct": -0.42},
-        {"name": "创业板指", "code": "399006", "price": 2180.34, "change_pct": -0.88}
-    ],
-    "sentiment": {"up_count": 1650, "down_count": 1950, "limit_up": 60, "limit_down": 30},
-    "north_flow": {"value": 18.5, "unit": "亿", "history": [32, 28, 45, -12, 20, 55, 18.5]},
-    "volume": {"value": 8950, "unit": "亿", "vs_20day_avg": -8.5, "history": [8200, 9100, 8800, 10200, 7800, 8500, 8950]},
-    "panic_history": [35, 38, 32, 28, 30, 34, 32],
-    "vix": {"value": 18.52, "change_pct": 2.1, "history": [16.5, 17.2, 16.8, 17.5, 18.0, 18.1, 18.5]},
-    "sp500": {"value": 5420.15, "change_pct": 0.45, "history": [5380, 5400, 5390, 5410, 5405, 5415, 5420]}
-}
-
-# ── A 股采集 ──
-
-def safe_call(fn, default=None, retries=2):
-    for i in range(retries):
+def get_json(url):
+    last = None
+    for attempt in range(2):
         try:
-            result = fn()
-            if result is not None:
-                return result
-        except Exception as e:
-            print(f"  [WARN] 第{i+1}次尝试失败: {type(e).__name__}", file=sys.stderr)
-            time.sleep(1)
-    return default
+            req = Request(url, headers={'User-Agent':'Mozilla/5.0', 'Referer':'https://quote.eastmoney.com/'})
+            with urlopen(req, timeout=12) as response:
+                return json.load(response)
+        except Exception as exc:
+            last = exc
+            if attempt == 0: time.sleep(.5)
+    raise RuntimeError(type(last).__name__)
 
-def fetch_indexes():
-    """尝试用 stock_zh_index_daily 或 stock_zh_index_spot_em 获取三大指数"""
-    # 方案A: stock_zh_index_spot_em (实时快照)
+def daily_index(secid):
+    params = {'secid':secid,'klt':101,'fqt':0,'lmt':120,'end':'20500101',
+              'fields1':'f1,f2,f3,f4,f5,f6', 'fields2':'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61'}
+    local_now = datetime.now(ZoneInfo('Asia/Shanghai'))
     try:
-        df = ak.stock_zh_index_spot_em()
-        if df is not None and not df.empty:
-            name_map = {"上证指数": "000001", "深证成指": "399001", "创业板指": "399006"}
-            results = []
-            for _, row in df.iterrows():
-                name = str(row.get("名称", ""))
-                if name in name_map:
-                    results.append({
-                        "name": name,
-                        "code": name_map[name],
-                        "price": round(float(row.get("最新价", 0)), 2),
-                        "change_pct": round(float(row.get("涨跌幅", 0)), 2)
-                    })
-            if len(results) >= 2:
-                return results
-    except Exception as e:
-        print(f"  [WARN] 方案A(spot_em)失败: {e}", file=sys.stderr)
+        payload = get_json('https://push2his.eastmoney.com/api/qt/stock/kline/get?' + urlencode(params))
+        rows = []
+        for line in (payload.get('data') or {}).get('klines', []):
+            fields = line.split(',')
+            if len(fields) >= 9:
+                if fields[0] == local_now.date().isoformat() and local_now.hour < 15: continue
+                rows.append({'date':fields[0], 'close':float(fields[2]), 'amount':float(fields[6]),
+                             'change_pct':float(fields[8]), 'source':'东方财富 · 指数日线'})
+        if not rows or any(not finite(r['close']) or r['close'] <= 0 for r in rows):
+            raise ValueError('Invalid index series')
+        return sorted(rows, key=lambda r:r['date'])
+    except Exception as exc:
+        print(f'[WARN] Eastmoney {secid}: {type(exc).__name__}', file=sys.stderr)
+    # Independent index-only fallback. Tencent's sixth column is share volume,
+    # so it must never be mistaken for currency turnover.
+    symbol = ('sh' if secid.startswith('1.') else 'sz') + secid.split('.')[1]
+    url = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?' + urlencode({'param':f'{symbol},day,,,120,qfq'})
+    block = get_json(url)['data'][symbol]
+    bars = block.get('day') or block.get('qfqday') or []
+    rows = []
+    for bar in sorted(bars, key=lambda row:row[0]):
+        if bar[0] > local_now.date().isoformat() or (bar[0] == local_now.date().isoformat() and local_now.hour < 15): continue
+        close = float(bar[2])
+        if not finite(close) or close <= 0: continue
+        change = round((close/rows[-1]['close']-1)*100,2) if rows else None
+        rows.append({'date':bar[0], 'close':close,'amount':None,'change_pct':change,'source':'腾讯财经 · 指数日线备用源'})
+    if not rows: raise ValueError('All index sources unavailable')
+    return rows
 
-    # 方案B: stock_zh_index_daily_em 带重试
-    for sym, name in [("sh000001", "上证指数"), ("sz399001", "深证成指"), ("sz399006", "创业板指")]:
-        for i in range(2):
-            try:
-                df = ak.stock_zh_index_daily_em(symbol=sym)
-                if df is not None and not df.empty and "close" in df.columns:
-                    row = df.iloc[-1]
-                    return [{
-                        "name": name, "code": sym[2:],
-                        "price": round(float(row["close"]), 2),
-                        "change_pct": round(float(row.get("pctChg", 0)), 2)
-                    }]
-            except:
-                time.sleep(1)
 
-    return None  # 降级
+def yahoo_series(symbol, key, now):
+    payload = get_json('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol.replace('^','%5E') + '?range=6mo&interval=1d')
+    result = payload['chart']['result'][0]
+    tz = ZoneInfo(result['meta'].get('exchangeTimezoneName', 'America/New_York'))
+    ny_now = datetime.now(tz)
+    timestamps = result.get('timestamp', [])
+    quotes = result['indicators']['quote'][0]['close']
+    points = []
+    for stamp, value in zip(timestamps, quotes):
+        day = datetime.fromtimestamp(stamp, tz).date()
+        # Intraday partial candles are excluded; both US instruments use completed sessions.
+        if day == ny_now.date() and ny_now.hour < 16: continue
+        if finite(value) and value > 0:
+            points.append({'date':day.isoformat(), 'value':round(value, 2)})
+    points = history_merge([], points)
+    if len(points) < 2: raise ValueError('Insufficient completed US sessions')
+    last, prev = points[-1], points[-2]
+    return fresh(key, last['value'], last['date'], now, history=points,
+                 change_pct=round((last['value']/prev['value']-1)*100, 2))
 
-def fetch_sentiment():
-    """涨跌家数 + 涨停跌停"""
-    result = {"up_count": 0, "down_count": 0, "limit_up": 0, "limit_down": 0}
+def fetch_breadth(trade_date, now):
+    params = {'fltt':2,'fields':'f104,f105,f124','secids':'1.000001,0.399106'}
+    payload = get_json('https://push2.eastmoney.com/api/qt/ulist.np/get?' + urlencode(params))
+    items = (payload.get('data') or {}).get('diff', [])
+    if len(items) != 2: raise ValueError('Missing exchange breadth')
+    dates = {datetime.fromtimestamp(int(i['f124']), ZoneInfo('Asia/Shanghai')).date().isoformat() for i in items}
+    if dates != {trade_date}: raise ValueError('Breadth session differs from index session')
+    counts = [(int(i['f104']), int(i['f105'])) for i in items]
+    up, down = sum(i[0] for i in counts), sum(i[1] for i in counts)
+    if up < 0 or down < 0 or up + down <= 0: raise ValueError('Missing breadth counts')
+    result = fresh('market_sentiment', up + down, trade_date, now,
+                   up_count=up, down_count=down, limit_up=None, limit_down=None)
+    result['meta']['source'] = '东方财富 · 上证综指＋深证综指成分涨跌家数（含B股，不含北交所）'
+    result['meta']['reason'] = '涨跌停池未取得；涨跌家数仍可独立查看'
     try:
-        # 涨停板
-        today = date.today().strftime("%Y%m%d")
-        zt = ak.stock_zt_pool_em(date=today)
-        if zt is not None and not zt.empty:
-            result["limit_up"] = len(zt)
-    except: pass
-    try:
-        dt = ak.stock_zt_pool_dtgc_em(date=today)
-        if dt is not None and not dt.empty:
-            result["limit_down"] = len(dt)
-    except: pass
-
-    # 涨跌家数 — 用 stock_zh_a_spot_em 可能被限，降级到昨晚数据
-    try:
-        df = ak.stock_zh_a_spot_em()
-        if df is not None and not df.empty and "涨跌幅" in df.columns:
-            result["up_count"] = int((df["涨跌幅"] > 0).sum())
-            result["down_count"] = int((df["涨跌幅"] < 0).sum())
-    except:
-        pass  # 保持0值，后面fallback
+        import akshare as ak
+        date_code = trade_date.replace('-','')
+        lu = ak.stock_zt_pool_em(date=date_code)
+        ld = ak.stock_zt_pool_dtgc_em(date=date_code)
+        if lu is not None and ld is not None:
+            result.update(limit_up=len(lu), limit_down=len(ld))
+            result['meta']['reason'] = '涨跌停池为独立A股口径（各板块涨跌停制度不同）'
+            result['meta']['source'] += ' / AKShare · A股涨跌停池'
+    except Exception as exc:
+        print(f'[WARN] Limit pools: {type(exc).__name__}', file=sys.stderr)
     return result
 
+def fetch_volume(sh, sz, now):
+    left = {r['date']:r['amount'] for r in sh}
+    right = {r['date']:r['amount'] for r in sz}
+    points = [{'date':day,'value':round((left[day]+right[day])/1e8, 2)} for day in sorted(left.keys() & right.keys())
+              if finite(left[day]) and finite(right[day]) and left[day] > 0 and right[day] > 0]
+    if not points: raise ValueError('No aligned turnover series')
+    previous = points[-21:-1]
+    avg = sum(p['value'] for p in previous)/20 if len(previous) == 20 else None
+    vs = round((points[-1]['value']/avg-1)*100, 2) if avg else None
+    metric = fresh('volume', points[-1]['value'], points[-1]['date'], now, unit='亿',
+                   vs_20day_avg=vs, history=history_merge([], points), baseline_days=len(previous))
+    metric['meta']['source'] += '（含B股，不含北交所；亿元）'
+    if avg is None: metric['meta']['reason'] = '不足20个前序交易日，暂不计算偏离'
+    return metric
 
-def fetch_sentiment_from_api():
-    """从东方财富 API 直接获取涨跌家数（不走 stock_zh_a_spot_em 全量扫描）"""
-    result = {"up_count": 0, "down_count": 0, "limit_up": 0, "limit_down": 0}
+def load_cache():
+    if DATA_FILE.exists():
+        return migrate(json.loads(DATA_FILE.read_text(encoding='utf-8-sig')))
+    return migrate({})
+
+def collect(previous):
+    now = datetime.now(ZoneInfo('Asia/Shanghai')).isoformat(timespec='seconds')
+    result = {'schema_version':2,'update_time':now,'mode':'live','a_share':{},'us_market':{}}
+    a, prev_a = result['a_share'], previous.get('a_share', {})
+    previous_indexes = {i['code']:i for i in prev_a.get('indexes', [])}
+    series = {}
+    a['indexes'] = []
+    for code, name, secid in [('000001','上证指数','1.000001'),('399001','深证成指','0.399001'),('399006','创业板指','0.399006')]:
+        try:
+            rows = daily_index(secid); series[code] = rows
+            last = rows[-1]
+            metric = fresh('indexes', last['close'], last['date'], now, change_pct=last['change_pct'],
+                           history=history_merge([], [{'date':r['date'],'value':r['close']} for r in rows]))
+            metric['meta']['source'] = last.get('source', SOURCES['indexes'])
+        except Exception as exc:
+            metric = fallback('indexes', previous_indexes.get(code), f'采集失败：{type(exc).__name__}')
+        metric['history'] = history_merge(previous_indexes.get(code, {}).get('history', []), metric.get('history', []))
+        a['indexes'].append(dict(metric, code=code, name=name))
     try:
-        url = ("https://push2.eastmoney.com/api/qt/ulist.np/get?"
-               "fltt=2&fields=f2,f3,f4,f12,f14,f104,f105,f115,f116"
-               "&secids=1.000001,0.399001,0.399006")
-        import urllib.request
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-            "Referer": "https://quote.eastmoney.com/",
-        })
-        resp = urllib.request.urlopen(req, timeout=10)
-        data = json.loads(resp.read().decode("utf-8"))
-        diff = data.get("data", {}).get("diff", [])
-        total_up = 0
-        total_down = 0
-        for item in diff:
-            total_up += int(item.get("f104", 0))
-            total_down += int(item.get("f105", 0))
-        if total_up > 0 or total_down > 0:
-            result["up_count"] = total_up
-            result["down_count"] = total_down
-    except Exception as e:
-        print(f"  [WARN] 涨跌家数API失败: {type(e).__name__}", file=sys.stderr)
-    
-    # 涨停跌停仍然走 stock_zt_pool_em
+        if '000001' not in series: raise ValueError('Shanghai daily series unavailable')
+        a['volume'] = fetch_volume(series['000001'], daily_index('0.399106'), now)
+    except Exception as exc:
+        a['volume'] = fallback('volume', prev_a.get('volume'), f'成交额不可用：{type(exc).__name__}')
+        a['volume'].setdefault('vs_20day_avg', None)
+    a['volume']['history'] = history_merge(prev_a.get('volume', {}).get('history', []), a['volume'].get('history', []))
     try:
-        today = date.today().strftime("%Y%m%d")
-        zt = ak.stock_zt_pool_em(date=today)
-        if zt is not None and not zt.empty:
-            result["limit_up"] = len(zt)
-        dt = ak.stock_zt_pool_dtgc_em(date=today)
-        if dt is not None and not dt.empty:
-            result["limit_down"] = len(dt)
-    except:
-        pass
+        day = series['000001'][-1]['date']
+        a['market_sentiment'] = fetch_breadth(day, now)
+    except Exception as exc:
+        a['market_sentiment'] = fallback('market_sentiment', prev_a.get('market_sentiment'), f'市场广度不可用：{type(exc).__name__}')
+    try: a['north_flow'] = fetch_north_flow(now, get_json)
+    except Exception as exc:
+        a['north_flow'] = fallback('north_flow', prev_a.get('north_flow'), f'北向历史源不可用：{type(exc).__name__}；每日净买额已停止披露')
+    for key, symbol in [('vix','^VIX'),('sp500','^GSPC')]:
+        try: metric = yahoo_series(symbol, key, now)
+        except Exception as exc:
+            print(f'[WARN] Yahoo {key}: {type(exc).__name__}', file=sys.stderr)
+            try: metric = cboe_vix(now) if key == 'vix' else sina_sp500(now)
+            except Exception as backup_exc:
+                metric = fallback(key, previous.get('us_market', {}).get(key), f'主备源采集失败：{type(backup_exc).__name__}')
+        metric['history'] = history_merge(previous.get('us_market', {}).get(key, {}).get('history', []), metric.get('history', []))
+        result['us_market'][key] = metric
+    score = calc_panic(a['market_sentiment'], a['volume'])
+    if score['value'] is not None:
+        day = a['volume']['meta']['trade_date']
+        a['panic_index'] = fresh('panic_index', score['value'], day, now, label=score['label'], components=score['components'],
+            history=history_merge(prev_a.get('panic_index', {}).get('history', []), [{'date':day,'value':score['value']}]))
+        if any(a[k]['meta']['status'] == 'cached' for k in ('market_sentiment','volume')):
+            a['panic_index']['meta'].update(status='cached', reason='依赖缓存输入；行情日期保持不变')
+    else:
+        a['panic_index'] = missing('panic_index', score['label'] + '：需同日市场广度、涨跌停池与20日成交额基线',
+                                   prev_a.get('panic_index', {}).get('history', []))
+        a['panic_index'].update(label=score['label'], components=[])
     return result
 
-
-def fetch_north_flow_new():
-    """北向资金 - 使用 stock_hsgt_fund_flow_summary_em + stock_hsgt_hist_em"""
-    result = {"value": 0, "unit": "亿", "history": []}
-    try:
-        df = ak.stock_hsgt_fund_flow_summary_em()
-        if df is not None and not df.empty:
-            # 取沪股通+深股通北向合计
-            north = df[df["资金方向"] == "北向"]
-            total = north["成交净买额"].sum()
-            result["value"] = round(float(total), 2)
-    except Exception as e:
-        print(f"  [WARN] 北向当日失败: {e}", file=sys.stderr)
-
-    try:
-        hist = ak.stock_hsgt_hist_em(symbol="沪股通")
-        if hist is not None and not hist.empty and "当日成交净买额" in hist.columns:
-            vals = hist["当日成交净买额"].dropna().tail(7).tolist()
-            result["history"] = [round(float(v), 2) for v in vals]
-    except: pass
-    return result
-
-def fetch_volume_new():
-    """成交量 — 无直接API时用mock"""
-    return None
-
-def calc_panic(sentiment, volume):
-    up = sentiment.get("up_count", 1) or 1
-    down = sentiment.get("down_count", 1) or 1
-    lu = sentiment.get("limit_up", 1) or 1
-    ld = sentiment.get("limit_down", 0) or 0
-
-    total = up + down
-    up_ratio = up / total if total > 0 else 0.5
-    ratio_score = (1 - up_ratio) * 100
-
-    zt_total = lu + ld
-    down_ratio = ld / zt_total if zt_total > 0 else 0.5
-    zt_score = down_ratio * 100
-
-    vs = volume.get("vs_20day_avg", 0) if volume else 0
-    if vs < -30: vol_score = 100
-    elif vs < -10: vol_score = 70
-    elif vs < 0: vol_score = 50
-    elif vs < 20: vol_score = 30
-    else: vol_score = 10
-
-    pv = round(ratio_score * 0.4 + zt_score * 0.3 + vol_score * 0.3, 1)
-    pv = max(0, min(100, pv))
-
-    if pv < 20: lbl = "乐观"
-    elif pv < 40: lbl = "平稳"
-    elif pv < 60: lbl = "恐慌"
-    elif pv < 80: lbl = "恐惧"
-    else: lbl = "极度恐慌"
-
-    return {"value": pv, "label": lbl}
-
-# ── 美股 ──
-
-def fetch_us():
-    """从新浪财经获取标普500 + 从东方财富获取VIX(通过VIXY ETF)"""
-    result = {"vix": {"value": 0, "change_pct": 0, "history": []},
-              "sp500": {"value": 0, "change_pct": 0, "history": []}}
-    import urllib.request
-    
-    # 标普500: 新浪财经
-    try:
-        url = "https://hq.sinajs.cn/list=gb_$inx"
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0",
-            "Referer": "https://finance.sina.com.cn",
-        })
-        resp = urllib.request.urlopen(req, timeout=10)
-        raw = resp.read().decode("gb18030")
-        parts = raw.split('"')[1].split(',')
-        if len(parts) >= 3:
-            price = float(parts[1])
-            change_pct = float(parts[2])
-            result["sp500"]["value"] = round(price, 2)
-            result["sp500"]["change_pct"] = round(change_pct, 2)
-            if len(parts) >= 7 and parts[6]:
-                prev_close = float(parts[6])
-                if prev_close > 0:
-                    result["sp500"]["history"] = [round(prev_close, 2), round(price, 2)]
-    except Exception as e:
-        print(f"  [WARN] 标普500获取失败: {type(e).__name__}", file=sys.stderr)
-    
-    # VIX: 通过东方财富VIXY ETF (恐慌指数期货短期合约，与VIX指数高度相关)
-    try:
-        url = "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f4,f12,f14,f170,f171,f172,f173,f174,f175&secids=107.VIXY"
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0",
-            "Referer": "https://quote.eastmoney.com/",
-        })
-        resp = urllib.request.urlopen(req, timeout=10)
-        data = json.loads(resp.read().decode("utf-8"))
-        diff = data.get("data", {}).get("diff", [])
-        if diff:
-            item = diff[0]
-            vixy_price = float(item.get("f2", 0))
-            vixy_change = float(item.get("f3", 0))
-            if vixy_price > 0:
-                # VIXY价格与VIX指数高度相关，显示VIXY数据并标注来源
-                result["vix"]["value"] = round(vixy_price, 2)
-                result["vix"]["change_pct"] = round(vixy_change, 2)
-    except Exception as e:
-        print(f"  [WARN] VIXY获取失败: {type(e).__name__}", file=sys.stderr)
-    
-    return result
-
-# ── 主流程 ──
+def save(data):
+    errors = validate(data)
+    if errors: raise ValueError('; '.join(errors))
+    DATA_FILE.parent.mkdir(exist_ok=True)
+    tmp = DATA_FILE.with_suffix('.tmp')
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    os.replace(tmp, DATA_FILE)
 
 def main():
-    use_mock = "--mock" in sys.argv
-    prev = load_previous()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--migrate-only', action='store_true', help='Invalidate undated legacy values without network access')
+    args = parser.parse_args()
+    previous = load_cache()
+    if args.migrate_only:
+        save(previous); print('[OK] Migrated legacy snapshot without inventing observations'); return
+    data = collect(previous)
+    metrics = data['a_share']['indexes'] + [v for k,v in data['a_share'].items() if k != 'indexes'] + list(data['us_market'].values())
+    if not any(m['meta']['status'] == 'fresh' for m in metrics):
+        print('[ERROR] No source returned a valid observation. Existing snapshot preserved.', file=sys.stderr)
+        sys.exit(1)
+    save(data)
+    print('[OK] Saved independently dated observations; unavailable metrics use null or verified cache')
 
-    if use_mock or (not HAVE_AKSHARE and not HAVE_YFINANCE):
-        print("[INFO] 使用模拟数据")
-        data = {
-            "update_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "data_note": "模拟数据 — 数据源不可用",
-            "a_share": {
-                "indexes": MOCK["indexes"],
-                "market_sentiment": MOCK["sentiment"],
-                "panic_index": {"value": 32, "label": "平稳", "history": MOCK["panic_history"]},
-                "north_flow": MOCK["north_flow"],
-                "volume": MOCK["volume"]
-            },
-            "us_market": {"vix": MOCK["vix"], "sp500": MOCK["sp500"]}
-        }
-        save_current(data)
-        print(f"[OK] 模拟数据已保存")
-        return
-
-    print("[INFO] 开始采集真实数据...")
-    data = {"update_time": datetime.now().strftime("%Y-%m-%d %H:%M")}
-
-    # A股
-    print("  指数...", end=" ", flush=True)
-    indexes = safe_call(fetch_indexes)
-    if not indexes:
-        print("⚠ 降级使用缓存/模拟")
-        indexes = prev.get("a_share", {}).get("indexes", [])
-    else:
-        print(f"✅ {len(indexes)}条")
-
-    print("  涨跌家数/涨停...", end=" ", flush=True)
-    sentiment = safe_call(fetch_sentiment_from_api)
-    if not sentiment or sentiment["up_count"] == 0:
-        # API 不可用时，用上一个交易日数据
-        prev_sent = prev.get("a_share", {}).get("market_sentiment", {})
-        if prev_sent.get("up_count", 0) > 0:
-            sentiment = dict(prev_sent)
-            print("⚠ 使用上一交易日涨跌家数数据")
-        else:
-            sentiment = {"up_count": 0, "down_count": 0, "limit_up": 0, "limit_down": 0}
-            print("⚠ 涨跌家数数据暂不可用（无历史缓存）")
-        # 用真实涨停跌停覆盖
-        try:
-            t = date.today().strftime("%Y%m%d")
-            zt = ak.stock_zt_pool_em(date=t)
-            if zt is not None: sentiment["limit_up"] = len(zt)
-            dt = ak.stock_zt_pool_dtgc_em(date=t)
-            if dt is not None: sentiment["limit_down"] = len(dt)
-        except: pass
-        print("  涨停:" + str(sentiment["limit_up"]) + " 跌停:" + str(sentiment["limit_down"]))
-    else:
-        print("✅ 上涨:" + str(sentiment["up_count"]) + " 下跌:" + str(sentiment["down_count"]))
-
-    print("  北向资金...", end=" ", flush=True)
-    nf = safe_call(fetch_north_flow_new)
-    if not nf or nf["value"] == 0:
-        print("⚠ 北向资金暂不可用，使用上一交易日数据")
-        prev_nf = prev.get("a_share", {}).get("north_flow", {})
-        if prev_nf.get("value", 0) > 0:
-            nf = prev_nf
-        else:
-            nf = {"value": 0, "unit": "亿", "history": []}
-    else:
-        print(f"✅ {nf['value']}亿")
-
-    prev_vol = prev.get("a_share", {}).get("volume", {})
-    if prev_vol.get("value", 0) > 0:
-        volume = prev_vol
-    else:
-        volume = dict(MOCK["volume"])
-
-    print("  恐慌指数...", end=" ", flush=True)
-    panic = calc_panic(sentiment, volume)
-    ph = prev.get("a_share", {}).get("panic_index", {}).get("history", [])
-    panic["history"] = (ph + [panic["value"]])[-7:]
-    if not panic["history"]:
-        panic["history"] = MOCK["panic_history"]
-    print(f"✅ {panic['value']} ({panic['label']})")
-
-    # 美股
-    print("  美股(VIX/标普500)...", end=" ", flush=True)
-    us = safe_call(fetch_us, retries=1)
-    if not us or us["sp500"]["value"] == 0:
-        print("⚠ 标普500数据暂不可用，使用上一交易日数据")
-        prev_us = prev.get("us_market", {})
-        if prev_us.get("vix", {}).get("value", 0) > 0:
-            us = prev_us
-        else:
-            us = {"vix": {"value": 0, "change_pct": 0, "history": []}, "sp500": {"value": 0, "change_pct": 0, "history": []}}
-    else:
-        print(f"✅ VIX:{us['vix']['value']} SP500:{us['sp500']['value']}")
-
-    data["a_share"] = {
-        "indexes": indexes,
-        "market_sentiment": sentiment,
-        "panic_index": panic,
-        "north_flow": nf,
-        "volume": volume
-    }
-    data["us_market"] = us
-
-    # 数据源标注
-    notes = []
-    if data["a_share"]["market_sentiment"].get("up_count", 0) == 0 and data["a_share"]["market_sentiment"].get("down_count", 0) == 0:
-        notes.append("涨跌家数暂无数据（数据源异常）")
-    if data["us_market"]["sp500"]["value"] == 0:
-        notes.append("美股标普500数据暂不可用")
-    if data["us_market"]["vix"]["value"] == 0:
-        notes.append("VIX数据暂不可用")
-    if notes:
-        data["data_note"] = "; ".join(notes)
-
-    save_current(data)
-    print(f"\n[OK] 数据已保存到 {DATA_FILE}")
-    if data.get("data_note"):
-        print(f"[NOTE] {data['data_note']}")
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__': main()

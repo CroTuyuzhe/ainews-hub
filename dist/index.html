@@ -2,13 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>市场情绪看板 | Sentiment Lab</title>
-  <meta name="description" content="A股 + 美股市场情绪实时看板">
+  <meta name="description" content="A股与美股市场情绪日度快照，提供数据来源、行情日期及历史趋势">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Space+Mono:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
     /* ===== DESIGN TOKENS (btcdca.me inspired) ===== */
     :root {
@@ -588,6 +587,46 @@
       .status-bar { font-size: 8px; padding: 12px 0; }
     }
 
+    .market-tabs { display: flex; gap: 8px; }
+    .market-tabs .nav-link { cursor: pointer; }
+    .market-tabs .nav-link:focus-visible { outline: 3px solid var(--us-market); outline-offset: 3px; }
+    .market-panel { display: flex; flex-direction: column; gap: 40px; min-width: 0; }
+    .market-panel[hidden] { display: none !important; }
+    @media (max-width: 640px) { .market-panel { gap: 20px; } }
+    .dashboard-actions,.market-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+    .dashboard-actions { padding:0 0 18px; font-size:11px; color:#666; }
+    .dashboard-actions button,.range-controls button,.chart-service button { cursor:pointer; border:1px solid #9b9b93; border-radius:5px; padding:7px 10px; background:#fff; color:#333; font:inherit; }
+    button:focus-visible,summary:focus-visible { outline:3px solid #0066cc; outline-offset:3px; }
+    .market-toolbar h2 { font-size:23px; font-weight:500; }
+    .market-toolbar p { font-size:11px; color:#666; margin-top:5px; line-height:1.7; }
+    .range-controls { border:0; display:flex; gap:6px; font-size:11px; }
+    .range-controls legend { margin-bottom:6px; color:#666; }
+    .range-controls button[aria-pressed='true'] { background:#1a1a1a; color:#fff; border-color:#1a1a1a; }
+    .quality-summary { font-size:12px; line-height:1.8; color:#666; margin-top:10px; }
+    .chart-service { font-size:11px; line-height:1.8; color:#666; margin-bottom:25px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .metric-meta { font-size:10px; color:#666; line-height:1.8; margin:5px 0 12px; overflow-wrap:anywhere; min-height:42px; }
+    .metric-badge { display:inline-block; border:1px solid #b2b5ae; border-radius:3px; padding:0 5px; margin-right:6px; color:#4e6550; background:#f1f5ed; }
+    .metric-badge.cached { color:#765b24; border-color:#c7b990; background:#f6f0df; }
+    .metric-badge.missing { color:#6f6f6f; background:#f0efed; border-color:#c8c7c1; }
+    .metric-badge.demo { color:#a33; background:#fff0ef; border-color:#d7aaa5; }
+    .metric-reason { display:block; color:#777; }
+    .chart-hint { color:#a5a5a5; font-size:10px; line-height:1.7; padding:6px 0; }
+    .chart-table { margin-top:10px; color:#b6b6b6; font-size:10px; }
+    .chart-table summary { cursor:pointer; }
+    .history-table-wrap { max-height:200px; overflow:auto; margin-top:8px; }
+    table { border-collapse:collapse; width:100%; font-size:11px; text-align:left; }
+    th,td { padding:7px 9px; border-bottom:1px solid #333; }
+    th { font-weight:500; }
+    .score-explanation { border:1px solid #c7c7bf; border-radius:8px; margin-top:30px; padding:18px 20px; font-size:12px; line-height:1.9; color:#555; }
+    .score-explanation summary { cursor:pointer; color:#222; font-weight:600; }
+    .score-explanation p { margin:13px 0; }
+    .score-explanation th,.score-explanation td { border-color:#d5d3cd; }
+    .market-panel { gap:28px; }
+    .index-item .metric-meta { color:#aaa; margin:6px 0 0; min-height:0; }
+    .idx-name,.idx-price { overflow-wrap:anywhere; }
+    [hidden] { display:none!important; }
+    @media(max-width:640px) { .market-toolbar { align-items:flex-start; }.market-toolbar h2 { font-size:20px; }.metric-meta { min-height:0; }.indexes-crt { grid-template-columns:1fr; }.index-item { padding:8px 0; }.index-item+.index-item { border-top:1px solid #333; }.score-explanation { padding:15px; } }
+
   </style>
 </head>
 <body>
@@ -598,14 +637,16 @@
       <span class="site-nav-title">Sentiment Lab</span>
     </a>
     <div class="site-nav-links">
-      <a class="nav-link a-share active">
+      <div class="market-tabs" role="tablist" aria-label="选择市场">
+      <button type="button" class="nav-link a-share active" id="tab-a-share" role="tab" aria-selected="true" aria-controls="panel-a-share" tabindex="0">
         <span class="nav-icon">A</span>
         <span>A股</span>
-      </a>
-      <a class="nav-link us-market">
+      </button>
+      <button type="button" class="nav-link us-market" id="tab-us-market" role="tab" aria-selected="false" aria-controls="panel-us-market" tabindex="-1">
         <span class="nav-icon">U</span>
         <span>美股</span>
-      </a>
+      </button>
+      </div>
       <a class="nav-link time-link" id="navTime">
         <span class="nav-icon">⏱</span>
         <span id="navTimeText">加载中...</span>
@@ -634,12 +675,12 @@
       <header>
         <div class="header-left">
           <div class="tagline">A-Share & US Market Sentiment Computer Lab</div>
-          <h1>市场情绪计算机实验室</h1>
+          <h1>市场情绪看板</h1>
           <p class="description">
-            实时追踪 A股 与美股市场情绪指标
+            每日更新 A股与美股已完成交易日的市场指标
             <span class="author-bubble">数据仅供参考</span>
           </p>
-          <div class="data-note" id="dataNote"></div>
+          <div class="data-note" id="dataNote"></div><p id="qualitySummary" class="quality-summary" role="status"></p>
         </div>
         <div class="header-right">
           <div class="update-card">
@@ -650,13 +691,16 @@
       </header>
 
       <!-- COMPUTER LAB -->
+      <div class="dashboard-actions"><span>行情日期与采集时间分开标注 · 默认北京时间</span><button type="button" id="refreshData">重新加载快照</button></div><div class="chart-service" id="chartService" role="status">正在加载图表组件；数值与历史表格可独立使用。</div>
       <div class="computer-lab">
 
+        <section id="panel-a-share" class="market-panel" role="tabpanel" aria-labelledby="tab-a-share">
+<div class="market-toolbar"><div><h2>A股市场</h2><p id="aMarketDate"></p></div><fieldset class="range-controls"><legend>历史窗口（交易日）</legend><button type="button" data-range="7" aria-pressed="true">7日</button><button type="button" data-range="30" aria-pressed="false">30日</button><button type="button" data-range="90" aria-pressed="false">90日</button></fieldset></div>
         <!-- ROW 1: 三大指数 -->
         <div class="computer-row">
           <div class="computer-unit wide">
             <div class="asset-badge a-share">A股 指数</div>
-            <div class="unit-header">// INDEX COMPUTER</div>
+            <div class="unit-header">// INDEX COMPUTER</div><div class="metric-meta" id="meta-indexes"></div>
             <div class="crt-screen">
               <div class="screen-content">
                 <div style="font-size:9px;color:var(--screen-text-dim);margin-bottom:8px;">$ ./track_indexes.sh</div>
@@ -670,7 +714,7 @@
         <div class="computer-row">
           <div class="computer-unit">
             <div class="asset-badge sentiment">市场情绪</div>
-            <div class="unit-header">// SENTIMENT SCANNER</div>
+            <div class="unit-header">// SENTIMENT SCANNER</div><div class="metric-meta" id="meta-market_sentiment"></div>
             <div class="crt-screen">
               <div class="screen-content" id="sentimentGrid">
                 <div style="color:var(--screen-text-dim);">扫描中...</div>
@@ -678,8 +722,8 @@
             </div>
           </div>
           <div class="computer-unit">
-            <div class="asset-badge panic">恐慌指数</div>
-            <div class="unit-header">// PANIC METER</div>
+            <div class="asset-badge panic">自定义情绪评分</div>
+            <div class="unit-header">// PANIC METER</div><div class="metric-meta" id="meta-panic_index"></div>
             <div class="crt-screen">
               <div class="screen-content">
                 <div class="gauge-wrapper">
@@ -695,7 +739,7 @@
                   </div>
                   <div class="gauge-info">
                     <div class="gauge-label" id="panicLabel" style="color:#33FF33;">等待数据</div>
-                    <div class="gauge-desc">基于涨跌比·涨跌停比·成交量偏离</div>
+                    <div class="gauge-desc">自定义0–100分 · 与美股VIX不同</div>
                   </div>
                 </div>
                 <div class="chart-crt">
@@ -709,8 +753,8 @@
         <!-- ROW 3: 北向资金 + 成交量 -->
         <div class="computer-row">
           <div class="computer-unit">
-            <div class="asset-badge flow">北向资金</div>
-            <div class="unit-header">// NORTH FLOW MONITOR</div>
+            <div class="asset-badge flow">北向资金历史</div>
+            <div class="unit-header">// NORTH FLOW MONITOR</div><div class="metric-meta" id="meta-north_flow"></div>
             <div class="crt-screen">
               <div class="screen-content">
                 <div class="data-row">
@@ -724,12 +768,12 @@
             </div>
           </div>
           <div class="computer-unit">
-            <div class="asset-badge volume">成交量</div>
-            <div class="unit-header">// VOLUME ANALYZER</div>
+            <div class="asset-badge volume">沪深成交额</div>
+            <div class="unit-header">// TURNOVER ANALYZER</div><div class="metric-meta" id="meta-volume"></div>
             <div class="crt-screen">
               <div class="screen-content">
                 <div class="data-row">
-                  <span class="data-label">VOLUME</span>
+                  <span class="data-label">TURNOVER</span>
                   <span class="data-value" id="volumeValue">--</span>
                 </div>
                 <div class="data-row">
@@ -744,6 +788,9 @@
           </div>
         </div>
 
+        </section>
+        <section id="panel-us-market" class="market-panel" role="tabpanel" aria-labelledby="tab-us-market" hidden>
+<div class="market-toolbar"><div><h2>美股市场</h2><p id="usMarketDate"></p></div><fieldset class="range-controls"><legend>历史窗口（交易日）</legend><button type="button" data-range="7" aria-pressed="true">7日</button><button type="button" data-range="30" aria-pressed="false">30日</button><button type="button" data-range="90" aria-pressed="false">90日</button></fieldset></div>
         <!-- DIVIDER -->
         <div class="row-divider">
           <span class="divider-text">── US MARKET MODULE ──</span>
@@ -752,8 +799,8 @@
         <!-- ROW 4: 美股 -->
         <div class="computer-row">
           <div class="computer-unit">
-            <div class="asset-badge us-market">VIX</div>
-            <div class="unit-header">// VOLATILITY INDEX</div>
+            <div class="asset-badge us-market">VIX 指数</div>
+            <div class="unit-header">// VOLATILITY INDEX</div><div class="metric-meta" id="meta-vix"></div>
             <div class="crt-screen">
               <div class="screen-content">
                 <div class="data-row">
@@ -772,7 +819,7 @@
           </div>
           <div class="computer-unit">
             <div class="asset-badge us-market">S&P 500</div>
-            <div class="unit-header">// INDEX TRACKER</div>
+            <div class="unit-header">// INDEX TRACKER</div><div class="metric-meta" id="meta-sp500"></div>
             <div class="crt-screen">
               <div class="screen-content">
                 <div class="data-row">
@@ -791,11 +838,13 @@
           </div>
         </div>
 
+        </section>
       </div><!-- /computer-lab -->
+<details class="score-explanation"><summary>评分如何计算？查看公式与分项贡献</summary><p>自定义市场情绪评分 = 下跌占比 × 40% ＋ 跌停占比 × 30% ＋ 成交额偏离分 × 30%。分数越高表示该公式下情绪压力越大，未做预测能力回测，不等于VIX或交易信号。</p><p>沪深广度与成交额采用上证综指＋深证综指口径（含B股、不含北交所）；涨跌停池为独立A股口径。数据不完整或行情日期不同，不合成分数。</p><p>成交额偏离以前20个交易日均值为基线：低于−30%记100分；[−30%,−10%)记70分；[−10%,0%)记50分；[0%,20%)记30分；≥20%记10分。</p><div id="scoreComponents"></div><p>标签：0–20 乐观；20–40 平稳；40–60 恐慌；60–80 恐惧；80–100 极度恐慌（各段含左端点，100归最后一段）。</p></details>
 
       <!-- Status -->
       <div class="status-bar">
-        SENTIMENT LAB v1.0 &nbsp;·&nbsp; 数据仅供参考，不构成投资建议 &nbsp;·&nbsp; <span style="color:var(--down);">❤</span>
+        SENTIMENT LAB v2.0 &nbsp;·&nbsp; 数据仅供参考，不构成投资建议 &nbsp;·&nbsp; <span style="color:var(--down);">❤</span>
       </div>
     </div><!-- /content -->
   </div><!-- /container -->
@@ -803,265 +852,6 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script>
-  // ===== Chart.js 全局配置 =====
-  Chart.defaults.color = '#888';
-  Chart.defaults.font.family = "'Space Mono', monospace";
-  Chart.defaults.font.size = 9;
-
-  function $(id) { return document.getElementById(id); }
-
-  function showToast(msg, duration) {
-    const t = $('toast');
-    t.textContent = '> ' + msg;
-    t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), duration || 2500);
-  }
-
-  function formatNum(n) {
-    if (n === undefined || n === null || isNaN(n)) return '--';
-    return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  function formatInt(n) {
-    if (n === undefined || n === null || isNaN(n)) return '--';
-    return Number(n).toLocaleString('zh-CN');
-  }
-  function changeClass(val) {
-    if (val > 0) return 'up';
-    if (val < 0) return 'down';
-    return '';
-  }
-  function changeSign(val) {
-    if (val === undefined || val === null || isNaN(val)) return '--';
-    const n = Number(val);
-    return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
-  }
-  function panicColor(val) {
-    if (val < 20) return '#33FF33';
-    if (val < 40) return '#84cc16';
-    if (val < 60) return '#f59e0b';
-    if (val < 80) return '#f97316';
-    return '#ef4444';
-  }
-  function panicLabel(val) {
-    if (val < 15) return '极低恐慌';
-    if (val < 30) return '低恐慌';
-    if (val < 45) return '平稳';
-    if (val < 60) return '中等恐慌';
-    if (val < 75) return '高恐慌';
-    return '极度恐慌';
-  }
-
-  function createChart(id, labels, data, color) {
-    const canvas = $(id);
-    if (!canvas) return null;
-    const ctx = canvas.getContext('2d');
-    return new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: data,
-          borderColor: color,
-          backgroundColor: color + '20',
-          borderWidth: 1.5,
-          pointRadius: 1.5,
-          pointHoverRadius: 4,
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1A1A1A',
-            titleColor: '#999',
-            bodyColor: '#e0e0e0',
-            borderColor: '#333',
-            borderWidth: 1,
-            padding: 8,
-            cornerRadius: 4,
-            displayColors: false,
-            titleFont: { family: "'Space Mono', monospace", size: 9 },
-            bodyFont: { family: "'Space Mono', monospace", size: 10 }
-          }
-        },
-        scales: {
-          x: { display: false, grid: { display: false } },
-          y: { display: false, grid: { display: false } }
-        },
-        interaction: { intersect: false, mode: 'index' }
-      }
-    });
-  }
-
-  function dateLabels(count) {
-    const labels = [];
-    const now = new Date();
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      labels.push((d.getMonth() + 1) + '/' + d.getDate());
-    }
-    return labels;
-  }
-
-  function render(data) {
-    const a = data.a_share || {};
-    const us = data.us_market || {};
-
-    // 注记
-    if (data.data_note) {
-      const note = $('dataNote');
-      note.textContent = '⚠ ' + data.data_note;
-      note.classList.add('show');
-    }
-
-    // 更新时间
-    $('updateTimeText').textContent = data.update_time || '--';
-    $('navTimeText').textContent = data.update_time || '--';
-    if (!data.update_time) $('statusDot').classList.add('offline');
-
-    // ---- 三大指数 ----
-    const idxList = a.indexes || [];
-    const idxGrid = $('indexGrid');
-    idxGrid.innerHTML = '';
-    idxList.forEach(idx => {
-      const chg = idx.change_pct || 0;
-      const div = document.createElement('div');
-      div.className = 'index-item';
-      div.innerHTML = `
-        <div class="idx-name">${idx.name}</div>
-        <div class="idx-price">${formatNum(idx.price)}</div>
-        <div class="idx-change ${changeClass(chg)}">${changeSign(chg)}</div>
-      `;
-      idxGrid.appendChild(div);
-    });
-
-    // ---- 市场情绪 ----
-    const sent = a.market_sentiment || {};
-    const noSentData = sent.up_count === 0 && sent.down_count === 0;
-    $('sentimentGrid').innerHTML = `
-      <div class="data-row">
-        <span class="data-label">上涨</span>
-        <span class="data-value up">${noSentData ? '--' : formatInt(sent.up_count)}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-label">下跌</span>
-        <span class="data-value down">${noSentData ? '--' : formatInt(sent.down_count)}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-label">涨停</span>
-        <span class="data-value up">${noSentData ? '--' : formatInt(sent.limit_up)}</span>
-      </div>
-      <div class="data-row">
-        <span class="data-label">跌停</span>
-        <span class="data-value down">${noSentData ? '--' : formatInt(sent.limit_down)}</span>
-      </div>
-    `;
-
-    // ---- 恐慌指数 ----
-    const panic = a.panic_index || {};
-    const pVal = panic.value || 0;
-    $('panicValue').textContent = Math.round(pVal);
-    $('panicLabel').textContent = panic.label || panicLabel(pVal);
-    $('panicLabel').style.color = panicColor(pVal);
-
-    const arc = $('panicArc');
-    const circumference = 2 * Math.PI * 16;
-    const offset = circumference - (pVal / 100) * circumference;
-    arc.style.strokeDasharray = circumference;
-    arc.style.strokeDashoffset = offset;
-    arc.style.stroke = panicColor(pVal);
-
-    const panicHist = panic.history || [];
-    if (panicHist.length >= 2) {
-      createChart('panicChart', dateLabels(panicHist.length), panicHist, panicColor(pVal));
-    }
-
-    // ---- 北向资金 ----
-    const nf = a.north_flow || {};
-    const nfVal = nf.value ?? 0;
-    const nfEl = $('northFlowValue');
-    nfEl.textContent = (nfVal >= 0 ? '+' : '') + nfVal.toFixed(1) + ' ' + (nf.unit || '亿');
-    nfEl.className = 'data-value ' + (nfVal >= 0 ? 'up' : 'down');
-
-    const nfHist = nf.history || [];
-    if (nfHist.length >= 2) {
-      createChart('northFlowChart', dateLabels(nfHist.length), nfHist, nfVal >= 0 ? '#22c55e' : '#ef4444');
-    }
-
-    // ---- 成交量 ----
-    const vol = a.volume || {};
-    const volVal = vol.value ?? 0;
-    $('volumeValue').textContent = formatNum(volVal) + ' ' + (vol.unit || '亿');
-    const vs = vol.vs_20day_avg ?? 0;
-    const vsEl = $('volumeVsAvg');
-    vsEl.textContent = (vs > 0 ? '+' : '') + vs.toFixed(1) + '%';
-    vsEl.className = 'data-value ' + changeClass(vs);
-
-    const volHist = vol.history || [];
-    if (volHist.length >= 2) {
-      createChart('volumeChart', dateLabels(volHist.length), volHist, '#6366f1');
-    }
-
-    // ---- 美股 ----
-    const vix = us.vix || {};
-    const vixVal = vix.value ?? 0;
-    $('vixValue').textContent = vixVal > 0 ? vixVal.toFixed(2) : '暂无数据';
-    const vixChg = vix.change_pct ?? 0;
-    const vixEl = $('vixChange');
-    vixEl.textContent = changeSign(vixChg);
-    vixEl.className = 'data-value ' + changeClass(vixChg);
-
-    const vixHist = vix.history || [];
-    if (vixHist.length >= 2) {
-      createChart('vixChart', dateLabels(vixHist.length), vixHist, '#f59e0b');
-    }
-
-    const sp = us.sp500 || {};
-    const spVal = sp.value ?? 0;
-    $('sp500Value').textContent = formatNum(spVal);
-    const spChg = sp.change_pct ?? 0;
-    const spEl = $('sp500Change');
-    spEl.textContent = changeSign(spChg);
-    spEl.className = 'data-value ' + changeClass(spChg);
-
-    const spHist = sp.history || [];
-    if (spHist.length >= 2) {
-      createChart('sp500Chart', dateLabels(spHist.length), spHist, '#22c55e');
-    }
-  }
-
-  async function loadData() {
-    try {
-      $('loading').style.display = 'block';
-      $('content').style.display = 'none';
-      $('error').style.display = 'none';
-
-      const resp = await fetch('./data.json?t=' + Date.now());
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const data = await resp.json();
-
-      $('loading').style.display = 'none';
-      $('content').style.display = 'block';
-
-      render(data);
-      showToast('数据已同步: ' + (data.update_time || '--'), 2000);
-    } catch (err) {
-      console.error('Load error:', err);
-      $('loading').style.display = 'none';
-      $('error').style.display = 'block';
-      $('errorMsg').textContent = err.message || '网络请求失败';
-      showToast('ERROR: ' + (err.message || '未知错误'), 3000);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', loadData);
-  </script>
+  <script src="app.js" defer></script>
 </body>
 </html>
