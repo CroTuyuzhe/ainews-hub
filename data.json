@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "update_time": "2026-11-04T12:15:51+08:00",
+  "update_time": "2026-11-04T12:26:14+08:00",
   "mode": "live",
   "a_share": {
     "indexes": [
@@ -373,7 +373,7 @@
           "status": "fresh",
           "source": "腾讯财经 · 指数日线备用源",
           "trade_date": "2026-11-03",
-          "fetched_at": "2026-11-04T12:15:51+08:00",
+          "fetched_at": "2026-11-04T12:26:14+08:00",
           "reason": ""
         },
         "code": "000001",
@@ -748,7 +748,7 @@
           "status": "fresh",
           "source": "腾讯财经 · 指数日线备用源",
           "trade_date": "2026-11-03",
-          "fetched_at": "2026-11-04T12:15:51+08:00",
+          "fetched_at": "2026-11-04T12:26:14+08:00",
           "reason": ""
         },
         "code": "399001",
@@ -1123,7 +1123,7 @@
           "status": "fresh",
           "source": "腾讯财经 · 指数日线备用源",
           "trade_date": "2026-11-03",
-          "fetched_at": "2026-11-04T12:15:51+08:00",
+          "fetched_at": "2026-11-04T12:26:14+08:00",
           "reason": ""
         },
         "code": "399006",
@@ -1507,15 +1507,21 @@
       }
     },
     "market_sentiment": {
-      "value": null,
+      "value": 5117,
       "change_pct": null,
       "history": [],
+      "up_count": 1598,
+      "down_count": 3519,
+      "limit_up": 30,
+      "limit_down": 16,
       "meta": {
-        "status": "missing",
-        "source": "东方财富 · 沪深市场广度 / AKShare · 涨跌停池",
-        "trade_date": null,
-        "fetched_at": null,
-        "reason": "市场广度不可用：ValueError"
+        "status": "fresh",
+        "source": "东方财富 · 上证综指＋深证综指成分涨跌家数（含B股，不含北交所） / AKShare · A股涨跌停池",
+        "trade_date": "2026-11-04",
+        "fetched_at": "2026-11-04T12:26:14+08:00",
+        "reason": "涨跌停池为独立A股口径（各板块涨跌停制度不同）",
+        "observed_at": "2026-11-04T12:26:21+08:00",
+        "session": "intraday"
       }
     },
     "north_flow": {
@@ -1888,23 +1894,41 @@
         "status": "cached",
         "source": "东方财富 · 沪深港通北向合计历史净买额",
         "trade_date": "2024-08-16",
-        "fetched_at": "2026-11-04T12:15:51+08:00",
+        "fetched_at": "2026-11-04T12:26:14+08:00",
         "reason": "2024-08-19起不再披露每日净买额；仅展示此前历史，非当日资金流"
       }
     },
     "panic_index": {
-      "value": null,
+      "value": 54.2,
       "change_pct": null,
       "history": [],
+      "label": "恐慌",
+      "components": [
+        {
+          "name": "下跌占比",
+          "score": 68.77,
+          "base_weight": 0.4,
+          "weight": 0.5714285714285715,
+          "contribution": 39.3
+        },
+        {
+          "name": "跌停占比",
+          "score": 34.78,
+          "base_weight": 0.3,
+          "weight": 0.4285714285714286,
+          "contribution": 14.91
+        }
+      ],
+      "calculation_mode": "partial",
+      "coverage": 0.7,
       "meta": {
-        "status": "missing",
+        "status": "fresh",
         "source": "Sentiment Lab · 自定义公式 v2",
-        "trade_date": null,
-        "fetched_at": null,
-        "reason": "数据不足：需同日市场广度、涨跌停池与20日成交额基线"
-      },
-      "label": "数据不足",
-      "components": []
+        "trade_date": "2026-11-04",
+        "fetched_at": "2026-11-04T12:26:14+08:00",
+        "reason": "参考评分：有效输入覆盖原公式70%，按有效权重归一；盘中或不同日的成交额不纳入，不与完整收盘评分直接比较，不写入收盘历史",
+        "session": "intraday"
+      }
     }
   },
   "us_market": {
@@ -2277,7 +2301,7 @@
         "status": "fresh",
         "source": "Yahoo Finance · ^VIX",
         "trade_date": "2026-11-03",
-        "fetched_at": "2026-11-04T12:15:51+08:00",
+        "fetched_at": "2026-11-04T12:26:14+08:00",
         "reason": ""
       }
     },
@@ -2650,7 +2674,7 @@
         "status": "fresh",
         "source": "Yahoo Finance · ^GSPC",
         "trade_date": "2026-11-03",
-        "fetched_at": "2026-11-04T12:15:51+08:00",
+        "fetched_at": "2026-11-04T12:26:14+08:00",
         "reason": ""
       }
     }
