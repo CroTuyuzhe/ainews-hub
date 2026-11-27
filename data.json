@@ -1,17 +1,13 @@
 {
   "schema_version": 2,
-  "update_time": "2026-11-27T12:26:00+08:00",
+  "update_time": "2026-11-28T03:35:22+08:00",
   "mode": "live",
   "a_share": {
     "indexes": [
       {
-        "value": 3476.88,
-        "change_pct": 0.01,
+        "value": 3606.49,
+        "change_pct": 3.73,
         "history": [
-          {
-            "date": "2026-07-16",
-            "value": 3882.41
-          },
           {
             "date": "2026-07-17",
             "value": 3764.15
@@ -367,26 +363,26 @@
           {
             "date": "2026-11-26",
             "value": 3476.88
+          },
+          {
+            "date": "2026-11-27",
+            "value": 3606.49
           }
         ],
         "meta": {
           "status": "fresh",
-          "source": "腾讯财经 · 指数日线备用源",
-          "trade_date": "2026-11-26",
-          "fetched_at": "2026-11-27T12:26:00+08:00",
+          "source": "东方财富 · 指数日线",
+          "trade_date": "2026-11-27",
+          "fetched_at": "2026-11-28T03:35:22+08:00",
           "reason": ""
         },
         "code": "000001",
         "name": "上证指数"
       },
       {
-        "value": 10084.04,
-        "change_pct": -0.02,
+        "value": 10814.02,
+        "change_pct": 7.24,
         "history": [
-          {
-            "date": "2026-07-16",
-            "value": 14488.65
-          },
           {
             "date": "2026-07-17",
             "value": 13706.88
@@ -742,26 +738,26 @@
           {
             "date": "2026-11-26",
             "value": 10084.04
+          },
+          {
+            "date": "2026-11-27",
+            "value": 10814.02
           }
         ],
         "meta": {
           "status": "fresh",
-          "source": "腾讯财经 · 指数日线备用源",
-          "trade_date": "2026-11-26",
-          "fetched_at": "2026-11-27T12:26:00+08:00",
+          "source": "东方财富 · 指数日线",
+          "trade_date": "2026-11-27",
+          "fetched_at": "2026-11-28T03:35:22+08:00",
           "reason": ""
         },
         "code": "399001",
         "name": "深证成指"
       },
       {
-        "value": 2189.82,
-        "change_pct": 0.29,
+        "value": 2443.96,
+        "change_pct": 11.61,
         "history": [
-          {
-            "date": "2026-07-16",
-            "value": 3692.46
-          },
           {
             "date": "2026-07-17",
             "value": 3428.63
@@ -1117,13 +1113,17 @@
           {
             "date": "2026-11-26",
             "value": 2189.82
+          },
+          {
+            "date": "2026-11-27",
+            "value": 2443.96
           }
         ],
         "meta": {
           "status": "fresh",
-          "source": "腾讯财经 · 指数日线备用源",
-          "trade_date": "2026-11-26",
-          "fetched_at": "2026-11-27T12:26:00+08:00",
+          "source": "东方财富 · 指数日线",
+          "trade_date": "2026-11-27",
+          "fetched_at": "2026-11-28T03:35:22+08:00",
           "reason": ""
         },
         "code": "399006",
@@ -1131,13 +1131,9 @@
       }
     ],
     "volume": {
-      "value": 13173.77,
+      "value": 19997.94,
       "change_pct": null,
       "history": [
-        {
-          "date": "2026-07-16",
-          "value": 24035.61
-        },
         {
           "date": "2026-07-17",
           "value": 26549.59
@@ -1493,35 +1489,39 @@
         {
           "date": "2026-11-26",
           "value": 13173.77
+        },
+        {
+          "date": "2026-11-27",
+          "value": 19997.94
         }
       ],
       "unit": "亿",
-      "vs_20day_avg": -18.71,
+      "vs_20day_avg": 24.31,
       "baseline_days": 20,
       "meta": {
-        "status": "cached",
+        "status": "fresh",
         "source": "东方财富 · 上证综指与深证综指日线成交额（含B股，不含北交所；亿元）",
-        "trade_date": "2026-11-26",
-        "fetched_at": "2026-11-27T03:45:06+08:00",
-        "reason": "成交额不可用：ValueError"
+        "trade_date": "2026-11-27",
+        "fetched_at": "2026-11-28T03:35:22+08:00",
+        "reason": ""
       }
     },
     "market_sentiment": {
-      "value": 5131,
+      "value": 5281,
       "change_pct": null,
       "history": [],
-      "up_count": 4320,
-      "down_count": 811,
-      "limit_up": 95,
+      "up_count": 5099,
+      "down_count": 182,
+      "limit_up": 417,
       "limit_down": 0,
       "meta": {
         "status": "fresh",
-        "source": "乐咕乐股 · 沪深A股赚钱效应快照",
+        "source": "东方财富 · 上证综指＋深证综指成分涨跌家数（含B股，不含北交所） / AKShare · A股涨跌停池",
         "trade_date": "2026-11-27",
-        "fetched_at": "2026-11-27T12:26:00+08:00",
-        "reason": "独立备用口径：沪深A股（不含B股）；涨跌停使用同一来源",
-        "observed_at": "2026-11-27T11:30:00+08:00",
-        "session": "intraday"
+        "fetched_at": "2026-11-28T03:35:22+08:00",
+        "reason": "涨跌停池为独立A股口径（各板块涨跌停制度不同）",
+        "observed_at": "2026-11-27T16:11:57+08:00",
+        "session": "closed"
       }
     },
     "north_flow": {
@@ -1894,12 +1894,12 @@
         "status": "cached",
         "source": "东方财富 · 沪深港通北向合计历史净买额",
         "trade_date": "2024-08-16",
-        "fetched_at": "2026-11-27T12:26:00+08:00",
+        "fetched_at": "2026-11-28T03:35:22+08:00",
         "reason": "2024-08-19起不再披露每日净买额；仅展示此前历史，非当日资金流"
       }
     },
     "panic_index": {
-      "value": 9.0,
+      "value": 4.4,
       "change_pct": null,
       "history": [
         {
@@ -1965,34 +1965,42 @@
         {
           "date": "2026-11-26",
           "value": 49.6
+        },
+        {
+          "date": "2026-11-27",
+          "value": 4.4
         }
       ],
       "label": "乐观",
       "components": [
         {
           "name": "下跌占比",
-          "score": 15.81,
-          "base_weight": 0.4,
-          "weight": 0.5714285714285715,
-          "contribution": 9.03
+          "score": 3.45,
+          "weight": 0.4,
+          "contribution": 1.38
         },
         {
           "name": "跌停占比",
           "score": 0.0,
-          "base_weight": 0.3,
-          "weight": 0.4285714285714286,
+          "weight": 0.3,
           "contribution": 0.0
+        },
+        {
+          "name": "成交额偏离",
+          "score": 10,
+          "weight": 0.3,
+          "contribution": 3.0
         }
       ],
-      "calculation_mode": "partial",
-      "coverage": 0.7,
+      "calculation_mode": "complete",
+      "coverage": 1,
       "meta": {
         "status": "fresh",
         "source": "Sentiment Lab · 自定义公式 v2",
         "trade_date": "2026-11-27",
-        "fetched_at": "2026-11-27T12:26:00+08:00",
-        "reason": "参考评分：有效输入覆盖原公式70%，按有效权重归一；盘中或不同日的成交额不纳入，不与完整收盘评分直接比较，不写入收盘历史",
-        "session": "intraday"
+        "fetched_at": "2026-11-28T03:35:22+08:00",
+        "reason": "同日完整输入，按原公式40% / 30% / 30%计算",
+        "session": "closed"
       }
     }
   },
@@ -2366,7 +2374,7 @@
         "status": "fresh",
         "source": "Yahoo Finance · ^VIX",
         "trade_date": "2026-11-26",
-        "fetched_at": "2026-11-27T12:26:00+08:00",
+        "fetched_at": "2026-11-28T03:35:22+08:00",
         "reason": ""
       }
     },
@@ -2739,7 +2747,7 @@
         "status": "fresh",
         "source": "Yahoo Finance · ^GSPC",
         "trade_date": "2026-11-25",
-        "fetched_at": "2026-11-27T12:26:00+08:00",
+        "fetched_at": "2026-11-28T03:35:22+08:00",
         "reason": ""
       }
     }
